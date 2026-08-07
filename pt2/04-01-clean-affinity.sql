@@ -11,11 +11,14 @@ date_added date
 );
 
 /*
-    There are two records where the affinity_org_id is different,
-    but all other values are the same. Because this is a CRM, patterns like this
-    are more likely to come from the same customer being entered twice,
-    or the same customer changing names/other attributes over time. 
-    So rather than treating each unique affinity_org_id as a unique record,
+  - There are two records where the affinity_org_id is different,
+    but all other values are the same.
+    
+  - Because this is a CRM, patterns like this are more likely to come 
+    from the same customer being entered twice, or the same customer 
+    changing names/other attributes over time. 
+
+  - So rather than treating each unique affinity_org_id as a unique record,
     we deduplicate the dataset by the remaining attributes.
 */
 
