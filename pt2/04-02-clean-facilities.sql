@@ -5,7 +5,7 @@ create or replace transient table int_facilities (
 facility_sk varchar,
 facility_id varchar,
 client_name varchar,
-fund varchar,
+fund_description varchar,
 product_type varchar,
 status varchar,
 discount_rate number(5,4),
