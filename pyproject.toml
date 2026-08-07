@@ -1,0 +1,9 @@
+[project]
+name = "altriarch-assessment"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "snowflake-cli>=3.24.1",
+]
