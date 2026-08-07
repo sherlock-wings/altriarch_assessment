@@ -44,6 +44,6 @@ qualify row_number() over (partition by upper(organization_name),
                                         state, 
                                         relationship_owner, 
                                         date_added 
-                           order     by affinity_org_id desc
+                           order     by affinity_org_id
         ) = 1
 ;

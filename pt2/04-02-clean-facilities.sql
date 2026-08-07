@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace table int_facilities (
+create or replace transient table int_facilities (
 facility_sk varchar,
 facility_id varchar,
 client_name varchar,
