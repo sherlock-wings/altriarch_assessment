@@ -61,7 +61,7 @@ from @internal_stage_csv
 );
 
 
-create or replace table raw.tenor_transactions_export (
+create or replace table callahan_db.raw.tenor_transactions_export (
 transaction_id varchar,
 transaction_date varchar,
 fund varchar,
@@ -74,12 +74,11 @@ file_row_number varchar,
 file_last_modified varchar
 );
 
-copy into raw.factorview_facilities_export 
+copy into callahan_db.raw.tenor_transactions_export 
 from (
-select $1, $2, $3, $4, $5, $6,
-       $7, $8, $9, $10,
+select $1, $2, $3, $4, $5, $6, $7,
        metadata$filename as file_name, metadata$file_row_number as file_row_number,
        metadata$file_last_modified as file_last_modified
-from @internal_stage_csv
-(file_format => filefmt_csv, pattern => '.*tenor_transactions_export.*')
+from @callahan_db.raw.internal_stage_csv
+(file_format => callahan_db.raw.filefmt_csv, pattern => '.*tenor_transactions_export.*')
 );
