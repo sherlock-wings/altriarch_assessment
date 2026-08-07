@@ -1,0 +1,49 @@
+facility_id,client_name,fund,product_type,status,facility_limit,nfe,discount_rate,funding_date,maturity_date
+FV-1014,Cedar Peak Funding,Cardinal Lender Finance Fund I,Factoring Facility,Active,"$1,017,125.00","$755,991.58",10.5%,02/10/2024,2027-02-09
+FV-1016,Slate Harbor Capital,Cardinal Lender Finance Fund I,Lender Finance Term Loan,ACTIVE,"1,017,125","964,636.74",0.095,2023-05-22,"May 21, 2026"
+FV-1023,Ridgeway Capital Solutions,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,610275.00,553799.65,10.5%,"Jun 18, 2025",06/18/2027
+FV-1037,Ashford Trade Finance,Cardinal ABL & Factoring Fund,Factoring Facility,Watchlist,"$2,034,250.00","$714,618.25",0.125,02/04/2024,2026-02-03
+FV-1004,Torrent Receivables Finance,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Paid Off,"1,017,125",0,10.5%,2023-10-12,"Oct 11, 2024"
+FV-1025,Bayline Cove Finance,Cardinal ABL & Factoring Fund,Factoring Facility,active,813700.00,347478.28,0.135,"May 01, 2024",10/23/2025
+FV-1002,Cobalt Working Capital LLC,Cardinal Lender Finance Fund I,ABL Revolver,Active,"$2,847,950.00","$1,145,340.97",10.5%,03/08/2024,2025-03-08
+FV-1021,Fairwater Factoring Co,Cardinal Lender Finance Fund I,Factoring Facility,Paid Off,"2,847,950",0,0.135,2025-06-10,"Jun 10, 2027"
+FV-1011,Elmgrove Capital Partners,Cardinal ABL & Factoring Fund,ABL Revolver,active,3254800.00,2379216.40,12.5%,"Jun 30, 2024",12/22/2025
+FV-1035,Clearford Receivables,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Watchlist,"$2,847,950.00","$1,164,086.00",0.105,10/29/2024,2025-10-29
+FV-1030,Thistle Lending Group,Cardinal ABL & Factoring Fund,ABL Revolver,ACTIVE,"2,441,100","1,168,169.08",12.5%,2023-05-16,"May 15, 2026"
+FV-1034,Wexford Capital,Cardinal ABL & Factoring Fund,ABL Revolver,active,813700.00,490766.05,0.095,"Oct 13, 2023",10/12/2026
+FV-1033,Dunmore Funding LLC,Cardinal ABL & Factoring Fund,Factoring Facility,Active,"$1,627,400.00","$1,351,320.55",13.5%,04/22/2023,2024-10-13
+FV-1019,Kingsford Receivables,Cardinal Lender Finance Fund I,ABL Revolver,ACTIVE,"2,847,950","2,279,859.96",0.125,2025-02-26,"Feb 26, 2027"
+FV-1018,Harbor Reach Funding,Cardinal Lender Finance Fund I,Factoring Facility,WATCHLIST,3254800.00,3084485.52,9.5%,"Jun 25, 2024",06/25/2026
+FV-1034,Wexford Capital,Cardinal ABL & Factoring Fund,ABL Revolver,Active,"$813,700.00","$490,766.05",0.095,10/13/2023,2026-10-12
+FV-1028,Longview Trade Credit,Cardinal Lender Finance Fund I,Factoring Facility,ACTIVE,"1,627,400","590,128.69",9.5%,2024-07-21,"Jan 12, 2026"
+FV-1010,Bluestone Asset Funding,Cardinal Lender Finance Fund I,Factoring Facility,active,1627400.00,728411.97,0.145,"Dec 30, 2023",06/22/2025
+FV-1010,Bluestone Asset Funding,Cardinal Lender Finance Fund I,Factoring Facility,Active,"$1,627,400.00","$728,411.97",14.5%,12/30/2023,2025-06-22
+FV-1003,GreyRock Funding Group,Cardinal ABL & Factoring Fund,ABL Revolver,Paid Off,"2,847,950",0,0.145,2024-07-28,"Jan 19, 2026"
+FV-1031,Thistle Lending Group,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,1017125.00,413558.43,12.5%,"Nov 05, 2024",11/05/2027
+FV-1017,Slate Harbor Capital,Cardinal ABL & Factoring Fund,Factoring Facility,Active,"$610,275.00","$269,561.39",0.125,06/13/2023,2026-06-12
+FV-1022,Ridgeway Capital Solutions,Cardinal Lender Finance Fund I,ABL Revolver,ACTIVE,"813,700",,12.5%,2023-06-15,"Jun 14, 2024"
+FV-1006,Stonebridge Commercial Capital,Cardinal ABL & Factoring Fund,Factoring Facility,active,610275.00,352712.33,0.095,"Jan 03, 2024",01/02/2026
+FV-1032,Ashbury Asset Finance,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Active,"$2,441,100.00","$2,119,612.13",14.5%,02/25/2023,2024-02-25
+FV-1025,Bayline Cove Finance,Cardinal ABL & Factoring Fund,Factoring Facility,ACTIVE,"813,700","347,478.28",0.135,2024-05-01,"Oct 23, 2025"
+FV-1007,Copper Elm Factoring,Cardinal ABL & Factoring Fund,ABL Revolver,active,2847950.00,1210081.70,14.5%,"Jan 23, 2024",01/22/2025
+FV-1036,Clearford Receivables,Cardinal Lender Finance Fund I,Factoring Facility,Closed,"$813,700.00",$0.00,0.095,05/07/2024,2025-10-29
+FV-1039,Kentmore Commercial Lending,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Paid Off,"406,850",0,9.5%,2024-07-09,"Jul 09, 2025"
+FV-1012,Shoreline Commercial Finance,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,2847950.00,1372054.32,0.095,"Nov 29, 2023",11/28/2024
+FV-1001,Cobalt Working Capital LLC,Cardinal Lender Finance Fund I,Factoring Facility,Active,"$610,275.00","$222,754.31",14.5%,10/09/2023,2025-04-01
+FV-1013,Shoreline Commercial Finance,Cardinal ABL & Factoring Fund,Factoring Facility,Watch List,"1,627,400","-36,779",0.135,2023-03-09,"Aug 30, 2024"
+FV-1008,Copper Elm Factoring,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,3254800.00,,11.5%,"Mar 13, 2023",03/12/2024
+FV-1029, Marigold Commercial Capital,Cardinal ABL & Factoring Fund,Factoring Facility,Active,"$406,850.00","$198,284.48",0.105,02/02/2023,2025-02-01
+FV-1038,Kentmore Commercial Lending,Cardinal Lender Finance Fund I,ABL Revolver,ACTIVE,"2,034,250","1,562,212.26",11.5%,2025-01-18,"Jan 18, 2028"
+FV-1027,Longview Trade Credit,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,2441100.00,2172013.76,0.095,"Apr 07, 2024",04/07/2025
+FV-1006,STONEBRIDGE COMMERCIAL CAPITAL  ,Cardinal ABL & Factoring Fund,Factoring Facility,Active,"$610,275.00","$352,712.33",9.5%,01/03/2024,2026-01-02
+FV-1009,Anchor Point Lending,Cardinal Lender Finance Fund I,Lender Finance Term Loan,ACTIVE,"610,275","526,783.66",0.125,2025-06-06,"Jun 06, 2026"
+FV-1016,Slate Harbor Capital,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,1017125.00,964636.74,9.5%,"May 22, 2023",05/21/2026
+FV-1015,Keystone Trade Finance,Cardinal ABL & Factoring Fund,ABL Revolver,Closed,"$2,847,950.00",$0.00,0.125,02/03/2025,2028-02-03
+FV-1029,Marigold Commercial Capital,Cardinal ABL & Factoring Fund,Factoring Facility,ACTIVE,"406,850","198,284.48",10.5%,2023-02-02,"Feb 01, 2025"
+FV-1040,Westvale Funding Group,Cardinal Lender Finance Fund I,Lender Finance Term Loan,active,406850.00,285001.09,0.135,"May 29, 2024",11/20/2025
+FV-1024,Pinehurst Funding Partners,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Closed,"$3,254,800.00",$0.00,13.5%,03/29/2023,2026-03-28
+FV-1020,Brookfield Asset Lending,Cardinal Lender Finance Fund I,Lender Finance Term Loan,Watch List,"2,441,100","859,138.29",0.105,2025-01-09,"Jan 09, 2027"
+FV-1004,Torrent Receivables Finance,Cardinal Lender Finance Fund I,Lender Finance Term Loan,CLOSED,1017125.00,0.00,10.5%,"Oct 12, 2023",10/11/2024
+FV-1026,Trailridge Working Capital,Cardinal ABL & Factoring Fund,ABL Revolver,Closed,"$1,017,125.00",$0.00,0.125,02/12/2025,2026-08-06
+FV-1005,Torrent Receivables Finance,Cardinal Lender Finance Fund I,Factoring Facility,Watch List,"2,034,250","1,127,280.26",11.5%,2023-06-09,"Nov 30, 2024"
+FV-1017,Slate Harbor Capital,Cardinal ABL & Factoring Fund,Factoring Facility,active,1017125.00,269561.39,0.125,"Jun 13, 2023",06/12/2026

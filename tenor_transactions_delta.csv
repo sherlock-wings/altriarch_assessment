@@ -1,0 +1,7 @@
+transaction_id,transaction_date,fund,share_class,investment_ref,transaction_type,amount
+INV-70001,10-Feb-26,Fund I,Class A,FV-1001,Remittance,"33,565.12"
+INV-70002,12-Feb-26,Cardinal ABL & Factoring Fund,Class B,FV-1011,Remittance,"71,931.08"
+INV-70003,15-Feb-26,Cardinal Lender Finance Fund I,Class A,FV-1023,Remittance,"16,091.32"
+INV-70004,18-Feb-26,Cardinal Lender Finance Fund I,Class A,FV-1036,Remittance,"50,693.51"
+INV-50100,19-Jul-25,Cardinal Lender Finance Fund I,Class A,FV-1023,Remittance,"69,312.65"
+INV-70005,20-Feb-26,Fund I,Class A,FV-9201,Remittance,"14,239.75"
