@@ -1,12 +1,24 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-select md5(transaction_id::varchar, 'NULL') as transaction_sk
+create or replace table int_transactions (
+transaction_sk varchar, 
+transaction_id varchar,
+transaction_date date,
+fund varchar,
+share_class varchar,
+facility_sk varchar,
+transaction_type varchar,
+amount number(35,3)
+);
+
+insert into int_transactions
+select md5(nvl(transaction_id::varchar, 'NULL')) as transaction_sk
       ,transaction_id
       ,to_date(transaction_date, 'dd-mon-yy') as transaction_date
       ,fund
       ,share_class
-      ,investment_ref
+      ,md5(nvl(investment_ref::varchar, 'NULL')) as facility_sk
       ,transaction_type
       ,case 
          when regexp_like(amount, '^\\(.*\\)$')
