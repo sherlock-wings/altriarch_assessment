@@ -9,8 +9,8 @@ fund_description varchar,
 product_type varchar,
 status varchar,
 discount_rate number(5,4),
-facility_fund_limit number(35,3),
 net_funds_employed number(35,3),
+facility_fund_limit number(35,3),
 funding_date date,
 maturity_date date
 );
