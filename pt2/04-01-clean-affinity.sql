@@ -10,16 +10,25 @@ relationship_owner varchar,
 date_added date
 );
 
+/*
+    There are two records where the affinity_org_id is different,
+    but all other values are the same. Because this is a CRM, patterns like this
+    are more likely to come from the same customer being entered twice,
+    or the same customer changing names/other attributes over time. 
+    So rather than treating each unique affinity_org_id as a unique record,
+    we deduplicate the dataset by the remaining attributes.
+*/
+
 insert into int_organization
-select md5(upper(organization_name)::varchar 
+select md5(nvl(upper(organization_name)::varchar, 'NULL') 
            || '||' ||
-           industry::varchar 
+           nvl(industry::varchar, 'NULL') 
            || '||' ||
-           state::varchar 
+           nvl(state::varchar, 'NULL') 
            || '||' ||
-           relationship_owner::varchar 
+           nvl(relationship_owner::varchar, 'NULL') 
            || '||' ||
-           to_date(date_added, 'mm/dd/yy')::varchar 
+           nvl(to_date(date_added, 'mm/dd/yy')::varchar, 'NULL') 
        ) as organization_sk
       ,upper(organization_name) as organization_name
       ,industry
