@@ -2,6 +2,7 @@ use role candidate_callahan;
 use schema callahan_db.staging;
 
 create or replace table int_facilities (
+facility_sk varchar,
 facility_id varchar,
 client_name varchar,
 fund varchar,
@@ -16,7 +17,8 @@ maturity_date date
 
 
 insert into int_facilities 
-select facility_id
+select md5(nvl(facility_id::varchar,'NULL')) as facility_sk
+      ,facility_id
       ,client_name
       ,fund as fund_description
       ,product_type
