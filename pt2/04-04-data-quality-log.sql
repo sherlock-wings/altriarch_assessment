@@ -12,6 +12,8 @@ issue_description varchar,
 issue_resolution varchar
 );
 
+insert into data_quality_log 
+(object_type, object_schema, object_name, field_name, issue_type, issue_description, issue_resolution)
 select 
 'TABLE' as object_type,
 'STAGING' as object_schema,
@@ -115,5 +117,142 @@ $$
 Use a CASE to parse out the number in its various formats, cast to NUMBER(35,3)
 $$ as issue_resolution
 
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+'NET_FUNDS_EMPLOYED' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The value uses Excel-style string formatting to represent currency amounts. 
+Should be formatted as number, not varchar. 
+$$ as issue_description,
+$$
+Use regexp to parse out the number in its various formats, cast to NUMBER(35,3)
+$$ as issue_resolution
 
 
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+'FACILITY_FUNDING_LIMIT' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The value uses Excel-style string formatting to represent positive and negative
+currency amounts. Should be formatted as number, not varchar. 
+$$ as issue_description,
+$$
+Use regexp to parse out the number in its various formats, cast to NUMBER(35,3)
+$$ as issue_resolution
+
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+'FUNDING_DATE' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The column contains varying string representations of a date. Should be
+DATE, Not varchar.
+$$ as issue_description,
+$$
+Use CASE statements to enumerate and parse all the various string formatted
+dates into true dates via TO_DATE()
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+'MATURITY_DATE' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The column contains varying string representations of a date. Should be
+DATE, Not varchar.
+$$ as issue_description,
+$$
+Use CASE statements to enumerate and parse all the various string formatted
+dates into true dates via TO_DATE()
+$$ as issue_resolution
+
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_TRANSACTIONS' as object_name,
+null as field_name,
+'MISSING-SURROGATE-KEY' as issue_type,
+$$ 
+This table has no surrogate key. Key formatting becomes non-standard if 
+this table holds data from multiple sources in the future.
+$$ as issue_description,
+$$
+Impose key-standardization with MD5 hash on TRANSACTION_ID.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_TRANSACTIONS' as object_name,
+'TRANSACTION_DATE' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The column contains a dd-mm-yy string-date. Should be true DATE
+$$ as issue_description,
+$$
+Parse into true dates via TO_DATE()
+$$ as issue_resolution
+
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_TRANSACTIONS' as object_name,
+null as field_name,
+'MISSING-SURROGATE-FOREIGN-KEY' as issue_type,
+$$ 
+This table has a join-field that can connect to another 
+table, (investment_ref), but that value is not standardized.
+Could lead to poor performance if multiple ID formats present
+themselves in the future.
+$$ as issue_description,
+$$
+Impose key-standardization with MD5 hash on INVESTMENT_REF.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_TRANSACTIONS' as object_name,
+'AMOUNT' as field_name,
+'ENFORCE-TYPE' as issue_type,
+$$ 
+The value uses Excel-style string formatting to represent a 
+signed currency amount. Should be a signed number, not a 
+varchar.
+$$ as issue_description,
+$$
+Use a CASE + regexp to parse out the number and its sign into 
+a consistent NUMBER(35,3) type.
+$$ as issue_resolution
+;
+
+select * from data_quality_log;
