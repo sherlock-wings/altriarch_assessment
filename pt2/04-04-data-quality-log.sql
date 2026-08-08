@@ -19,7 +19,7 @@ select
 'STAGING' as object_schema,
 'INT_ORGANIZATION' as object_name,
 null as field_name,
-'DUPLICATES' as issue_type,
+'DUPLICATES - SIMPLE' as issue_type,
 $$ The same customer is represented with two different records. In that
 record pair, all values are the same except for Affinity_ID and 
 Organization_Name. And the Org-name is only different in the letter 
@@ -253,6 +253,60 @@ $$
 Use a CASE + regexp to parse out the number and its sign into 
 a consistent NUMBER(35,3) type.
 $$ as issue_resolution
+
+union all 
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+null as field_name,
+'DUPLICATES - SIMPLE' as issue_type,
+$$ 
+There are many duplicate facilities where each cell value is identical
+across the record. 
+$$ as issue_description,
+$$
+Squish these with DISTINCT
+$$ as issue_resolution
+
+union all 
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+null as field_name,
+'DUPLICATES - COMPOUND' as issue_type,
+$$ 
+Facility ID 'FV-1004' has a pair of dupes where each has a different
+STATUS value. 
+$$ as issue_description,
+$$
+Convert status to a ARRAY column and collapse differing STATUS values 
+into a single list. See pt2/04-03-clean-transactions.sql for details on
+thought process.
+$$ as issue_resolution
 ;
 
-select * from data_quality_log;
+union all 
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITIES' as object_name,
+null as field_name,
+'DUPLICATES - COMPOUND' as issue_type,
+$$ 
+Facility ID 'FV-1017' has a pair of dupes where each has a different
+FACILITY_FUNDING_LIMIT value. 
+$$ as issue_description,
+$$
+Consider both values for FACILITY_FUNDING_LIMIT as invalid.
+Collapse this into a single record where FACILITY_FUNDING_LIMIT
+is NULL. Follow-up would be required to diagnose and resolve 
+the upstream issue that causes this problem. Likely solution 
+would require making records distinct with timing-based 
+metadata.
+$$ as issue_resolution
+;

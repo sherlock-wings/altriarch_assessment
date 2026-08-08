@@ -115,6 +115,11 @@ information I have.
 
 So the approach I take here is "If the facility has two distinct FACILITY_FUNDING_LIMIT values,
 no it doesn't. Consider this a single facility record where FACILITY_FUNDING_LIMIT IS NULL".
+
+In the real world, this would just be the beginning of the resolution. A realistic follow up
+would be to include in the source a "time-of-load" metadata column that would feasibly 
+distinguish similar records. Unless FACILITY_FUNDING_LIMIT never changes (unrealistic), that 
+kind of metadata is generally required for a good pipeline. 
 */
 ,normal_records as (
 select * from agged where max_rownum = 1
