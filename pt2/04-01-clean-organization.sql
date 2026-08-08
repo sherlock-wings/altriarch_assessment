@@ -2,6 +2,7 @@ use role candidate_callahan;
 use schema callahan_db.staging;
 
 create or replace transient table int_organization (
+organization_id varchar,
 organization_sk varchar,
 organization_name varchar,
 industry varchar,
@@ -18,12 +19,18 @@ date_added date
     from the same customer being entered twice, or the same customer 
     changing names/other attributes over time. 
 
-  - So rather than treating each unique affinity_org_id as a unique record,
-    we deduplicate the dataset by the remaining attributes.
+  - So rather than treating each unique affinity_org_id as a unique 
+    record, we deduplicate the dataset by the remaining attributes. 
+  
+  - We assign the *first* affinity_org_id as the official ID for 
+    a given partition. This way the first ID that is known for a 
+    customer is frozen, and future IDs that point to the same 
+    customer are blocked
 */
 
 insert into int_organization
-select md5(nvl(upper(organization_name)::varchar, 'NULL') 
+select affinity_org_id as organization_id
+       md5(nvl(upper(organization_name)::varchar, 'NULL') 
            || '||' ||
            nvl(industry::varchar, 'NULL') 
            || '||' ||
@@ -47,3 +54,41 @@ qualify row_number() over (partition by upper(organization_name),
                            order     by affinity_org_id
         ) = 1
 ;
+
+create or replace transient table audit_organzation (
+  organization_id varchar,
+  organization_sk varchar,
+  organization_name varchar,
+  industry varchar,
+  state varchar,
+  relationship_owner varchar,
+  date_added date,
+  record_number number(38,0),
+  duplicate_id varchar
+);
+
+with numbered as (
+select *
+      ,qualify row_number() over (
+       partition by upper(organization_name), 
+                    industry, 
+                    state, 
+                    relationship_owner, 
+                    date_added 
+       order     by affinity_org_id
+      ) as record_number
+from callahan_db.raw.affinity_organizations_export
+)
+
+,dupe_ls as (
+  select distinct * exclude (affinity_org_id, record_number) 
+  from numbered
+  where record_number > 1
+)
+
+select *
+      ,md5(nvl(affinity_org_id::varchar, 'NULL') 
+           || '||' || 
+           nvl(record_number::varchar, 'NULL')
+      ) as duplicate_id
+from numbered;

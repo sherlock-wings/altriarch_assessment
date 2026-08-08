@@ -287,7 +287,6 @@ Convert status to a ARRAY column and collapse differing STATUS values
 into a single list. See pt2/04-03-clean-transactions.sql for details on
 thought process.
 $$ as issue_resolution
-;
 
 union all 
 
