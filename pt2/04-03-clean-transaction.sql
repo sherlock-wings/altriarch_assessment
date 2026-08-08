@@ -8,7 +8,6 @@ transaction_date date,
 fund_description varchar,
 share_class varchar,
 facility_id varchar,
-facility_sk varchar,
 transaction_type varchar,
 amount number(35,3)
 );
@@ -28,7 +27,6 @@ select md5(nvl(a.transaction_id::varchar, 'NULL')) as transaction_sk
       ,a.fund as fund_description
       ,a.share_class
       ,nvl(a.investment_ref, 'NULL') as facility_id 
-      ,md5(nvl(a.investment_ref::varchar, 'NULL')) as facility_sk
       ,a.transaction_type
       ,case 
          when regexp_like(a.amount, '^\\(.*\\)$')
@@ -49,7 +47,6 @@ select distinct
       ,'NULL' as fund_description
       ,a.share_class
       ,nvl(a.investment_ref, 'NULL') as facility_id 
-      ,md5(nvl(a.investment_ref::varchar, 'NULL')) as facility_sk
       ,a.transaction_type
       ,case 
          when regexp_like(a.amount, '^\\(.*\\)$')
