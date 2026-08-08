@@ -185,6 +185,7 @@ Use CASE statements to enumerate and parse all the various string formatted
 dates into true dates via TO_DATE()
 $$ as issue_resolution
 
+select 
 
 union all
 
@@ -216,7 +217,6 @@ $$ as issue_description,
 $$
 Parse into true dates via TO_DATE()
 $$ as issue_resolution
-
 
 union all
 
@@ -276,7 +276,7 @@ select
 'TABLE' as object_type,
 'STAGING' as object_schema,
 'INT_FACILITIES' as object_name,
-null as field_name,
+'STATUS' as field_name,
 'DUPLICATES - COMPOUND' as issue_type,
 $$ 
 Facility ID 'FV-1004' has a pair of dupes where each has a different
@@ -294,7 +294,7 @@ select
 'TABLE' as object_type,
 'STAGING' as object_schema,
 'INT_FACILITIES' as object_name,
-null as field_name,
+'FACILITY_FUNDING_LIMIT' as field_name,
 'DUPLICATES - COMPOUND' as issue_type,
 $$ 
 Facility ID 'FV-1017' has a pair of dupes where each has a different
@@ -308,4 +308,28 @@ the upstream issue that causes this problem. Likely solution
 would require making records distinct with timing-based 
 metadata.
 $$ as issue_resolution
-;
+
+
+union all 
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_TRANSACTIONS' as object_name,
+'FUND_DESCRIPTION' as field_name,
+'DUPLICATES - COMPOUND' as issue_type,
+$$ 
+Transaction ID 'INV-50041' has a pair of dupes where each has a different
+FUND_DESCRIPTION value. 
+$$ as issue_description,
+$$
+Consider both values for FUND_DESCRIPTION as invalid.
+Collapse this into a single record where FUND_DESCRIPTION
+is NULL. Follow-up would be required to diagnose and resolve 
+the upstream issue that causes this problem. Likely solution 
+would require making records distinct with timing-based 
+metadata.
+$$ as issue_resolution;
+
+
+select * from data_quality_log order by 2,3,4,5,6;
