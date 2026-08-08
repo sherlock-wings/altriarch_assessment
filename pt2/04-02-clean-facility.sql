@@ -12,7 +12,8 @@ net_funds_employed number(35,3),
 FACILITY_FUNDING_LIMIT number(35,3),
 funding_date date,
 maturity_date date,
-statuses array
+statuses array,
+load_number number(38,0)
 );
 
 insert into int_facility 
@@ -140,6 +141,7 @@ select * from agged where max_rownum = 1
 select * from agged where max_rownum = 2
 )
 
+,stack as (
 select a.FACILITY_SK
       ,a.FACILITY_ID
       ,a.CLIENT_NAME
@@ -168,7 +170,36 @@ select FACILITY_SK
       ,FUNDING_DATE
       ,MATURITY_DATE
       ,STATUSES
-from weird_records;
+from weird_records
+)
+
+select *
+      ,md5(
+       nvl(FACILITY_SK::varchar, 'NULL')
+       || '||' ||
+       nvl(FACILITY_ID::varchar, 'NULL')
+       || '||' ||
+       nvl(CLIENT_NAME::varchar, 'NULL')
+       || '||' ||
+       nvl(FUND_DESCRIPTION::varchar, 'NULL')
+       || '||' ||
+       nvl(PRODUCT_TYPE::varchar, 'NULL')
+       || '||' ||
+       nvl(DISCOUNT_RATE::varchar, 'NULL')
+       || '||' ||
+       nvl(NET_FUNDS_EMPLOYED::varchar, 'NULL')
+       || '||' ||
+       nvl(try_cast(null as number(35,3))::varchar, 'NULL') 
+       || '||' ||
+       nvl(FUNDING_DATE::varchar, 'NULL')
+       || '||' ||
+       nvl(MATURITY_DATE::varchar, 'NULL')
+       || '||' ||
+       nvl(STATUSES::varchar, 'NULL')
+       ) as change_tracking_key
+      ,1 as load_number
+from stack
+;
 
 create or replace table audit_facility like callahan_db.raw.factorview_facilities_export;
 alter table audit_facility add column record_number number(38,0), duplicate_id varchar;
@@ -193,6 +224,7 @@ select a.*
            || '||' || 
            nvl(a.record_number::varchar, 'NULL') 
        ) as duplicate_id
+      ,1 as load_number
 from numbered a 
 join dedup b 
   on a.facility_id = b.facility_id

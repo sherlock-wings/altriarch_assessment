@@ -8,7 +8,9 @@ organization_name varchar,
 industry varchar,
 state varchar,
 relationship_owner varchar,
-date_added date
+date_added date,
+change_tracking_key varchar,
+load_number number(38,0)
 );
 
 /*
@@ -30,21 +32,22 @@ date_added date
 
 insert into int_organization
 select affinity_org_id as organization_id
-      ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL') 
-           || '||' ||
-           nvl(industry::varchar, 'NULL') 
-           || '||' ||
-           nvl(state::varchar, 'NULL') 
-           || '||' ||
-           nvl(relationship_owner::varchar, 'NULL') 
-           || '||' ||
-           nvl(to_date(date_added, 'mm/dd/yy')::varchar, 'NULL') 
-       ) as organization_sk
+      ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL')) as organization_sk
       ,trim(upper(organization_name), ' ') as organization_name
       ,nvl(industry, 'NULL') as industry
       ,state
       ,relationship_owner
       ,to_date(date_added, 'mm/dd/yy') as date_added
+      ,md5(
+       nvl(industry::varchar, 'NULL') 
+       || '||' ||
+       nvl(state::varchar, 'NULL')
+       || '||' ||
+       nvl(relationship_owner::varchar, 'NULL')
+       || '||' ||
+       to_date(date_added, 'mm/dd/yy')::varchar
+      ) as change_tracking_key,
+      1 as load_number
 from callahan_db.raw.affinity_organizations_export
 qualify row_number() over (partition by upper(organization_name), 
                                         industry, 
@@ -58,7 +61,9 @@ qualify row_number() over (partition by upper(organization_name),
 
 create or replace transient table audit_organizations 
 like callahan_db.raw.affinity_organizations_export;
-alter table audit_organizations add column record_number number(38,0), duplicate_id varchar;
+alter table audit_organizations add column record_number number(38,0)
+                                          ,duplicate_id varchar
+                                          ,load_number number(38,0);
 
 
 insert into audit_organizations
@@ -87,10 +92,11 @@ select a.*
            || '||' || 
            nvl(a.record_number::varchar, 'NULL')
       ) as duplicate_id
+      ,1 as load_number
 from numbered a 
 join dupe_ls b 
   on trim(upper(a.organization_name), ' ') = trim(upper(b.organization_name), ' ')
 ;
 
 select * from int_organization;
-select * from audit_organizations;
+select * from audit_organization;
