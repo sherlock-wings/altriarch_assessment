@@ -55,19 +55,10 @@ qualify row_number() over (partition by upper(organization_name),
         ) = 1
 ;
 
-create or replace transient table audit_organzation (
-  affinity_org_id varchar,
-  organization_name varchar,
-  industry varchar,
-  state varchar,
-  relationship_owner varchar,
-  date_added date,
-  file_name varchar,
-  file_row_number varchar,
-  file_last_modified varchar,
-  record_number number(38,0),
-  duplicate_id varchar
-);
+
+create or replace table audit_facilities like callahan_db.raw.factorview_facilities_export;
+alter table audit_facilities add column record_number number(38,0), duplicate_id varchar;
+
 
 insert into audit_organzation
 with numbered as (

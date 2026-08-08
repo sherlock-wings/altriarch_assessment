@@ -61,26 +61,37 @@ from callahan_db.raw.factorview_facilities_export
 
 
 /*
-Two duplicates remain. These are "compound" duplicates-- at least one cell value differs between
+Two duplicates remain. These are "compound" duplicates-- at least one cell value differs between 
 the pairs.
 
-Here, we have to either collapse compound values into a single value, or we must remove the value
-altogether if it can't be reconcilied
+Two fields are contributing to the compound duplicates-- STATUS and FACILITY_FUNDING_LIMIT
 
-Two cells are contributing to the compound duplicates-- STATUS and FACILITY_FUNDING_LIMIT
+To resolve the dupes, our options are:
 
+1) Pick one record over another
+2) Collapse both records into one 
+3) Keep one record with a NULL for the discrepant field
+4) Throw out the record entirely. 
+
+
+For both duplicate cases, (1) and (4) are not good options. (4) would cause silent data loss,
+so that's out of the question.
+
+(1) is normally a good option, but in this case we have no timing metadata. If we did, we could
+remove older records and keep current ones only (as in a SCD I dimension), or we could make
+the duplicates distinct by establishing "current" and "historical" records (as in a SCD II
+dimension).
+
+So for both duplicate cases, we must either do option (2) or option (3)
 ------------------------------------------------------------------------------------------------
 ON STATUS
 ------------------------------------------------------------------------------------------------
 With the STATUS column, this is a category. It is not a true "fact" in that it is not numeric.
-For that reason, we can feasibly combine multiple differing statuses into an array object.
+For that reason, we can feasibly combine multiple differing statuses into an array object (option
+2).
 
 This does not give the record a single "authoratative" status, but it does let the viewer know
 when multiple statuses are present, which helps give the record context. 
-
-We *could* pick a single STATUS value. I am choosing NOT to do that here because we have no
-timing metadata. If I had something like FACTORVIEW_SYNCED_TIMESTAMP, then I would pick
-the STATUS that is dated later in time. 
 */
 ,collapse_statuses as (
 select * exclude(status), split(listagg(distinct status, ','), ',') as statuses
@@ -106,20 +117,15 @@ group by all
 ------------------------------------------------------------------------------------------------
 ON FACILITY_FUNDING_LIMIT
 ------------------------------------------------------------------------------------------------
-This field is a true "fact" because it is numeric. As before, we have no metadata timestamp that
-tells us which value is later. So each value is equally valid, which is to say that both values
-are invalid and cannot be trusted.
+This field is a true "fact" because it is numeric. Because we have no timing metadata, each 
+value is equally valid, which is to say that both values are invalid and cannot be trusted.
 
 Yet we have no reason to be suspicious of the rest of the record's values, based just on the 
 information I have. 
 
-So the approach I take here is "If the facility has two distinct FACILITY_FUNDING_LIMIT values,
-no it doesn't. Consider this a single facility record where FACILITY_FUNDING_LIMIT IS NULL".
-
-In the real world, this would just be the beginning of the resolution. A realistic follow up
-would be to include in the source a "time-of-load" metadata column that would feasibly 
-distinguish similar records. Unless FACILITY_FUNDING_LIMIT never changes (unrealistic), that 
-kind of metadata is generally required for a good pipeline. 
+So the approach I take here is option (3): "If the facility has two distinct 
+FACILITY_FUNDING_LIMIT values, no it doesn't. Consider this a single facility record where 
+FACILITY_FUNDING_LIMIT is NULL".
 */
 ,normal_records as (
 select * from agged where max_rownum = 1
@@ -128,7 +134,6 @@ select * from agged where max_rownum = 1
 ,weird_records as (
 select * from agged where max_rownum = 2
 )
-
 
 select a.FACILITY_SK
       ,a.FACILITY_ID
@@ -159,3 +164,5 @@ select FACILITY_SK
       ,MATURITY_DATE
       ,STATUSES
 from weird_records;
+
+select * from int_facilities;
