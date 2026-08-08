@@ -93,4 +93,4 @@ join dupe_ls b
 ;
 
 select * from int_organizations;
-select * from audit_organzations;
+select * from audit_organizations;
