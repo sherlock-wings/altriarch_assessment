@@ -12,8 +12,7 @@ net_funds_employed number(35,3),
 FACILITY_FUNDING_LIMIT number(35,3),
 funding_date date,
 maturity_date date,
-statuses array,
-load_number number(38,0)
+statuses array
 );
 
 insert into int_facility 
@@ -197,7 +196,6 @@ select *
        || '||' ||
        nvl(STATUSES::varchar, 'NULL')
        ) as change_tracking_key
-      ,1 as load_number
 from stack
 ;
 
@@ -224,7 +222,6 @@ select a.*
            || '||' || 
            nvl(a.record_number::varchar, 'NULL') 
        ) as duplicate_id
-      ,1 as load_number
 from numbered a 
 join dedup b 
   on a.facility_id = b.facility_id
