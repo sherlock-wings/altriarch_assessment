@@ -12,7 +12,8 @@ net_funds_employed number(35,3),
 FACILITY_FUNDING_LIMIT number(35,3),
 funding_date date,
 maturity_date date,
-statuses array
+statuses array,
+change_tracking_key varchar
 );
 
 insert into int_facility 
