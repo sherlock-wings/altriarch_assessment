@@ -15,7 +15,7 @@ maturity_date date,
 statuses array
 );
 
--- insert into int_facilities 
+insert into int_facilities 
 /*
 Table presents with many initial simple duplicates-- once varying formats are 
 standardized (dclient_name, status, discount_rate, etc) each value in these 

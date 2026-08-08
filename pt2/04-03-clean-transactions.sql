@@ -46,7 +46,7 @@ select distinct
        md5(nvl(a.transaction_id::varchar, 'NULL')) as transaction_sk
       ,a.transaction_id
       ,to_date(a.transaction_date, 'dd-mon-yy') as transaction_date
-      ,null as fund_description
+      ,'NULL' as fund_description
       ,a.share_class
       ,nvl(a.investment_ref, 'NULL') as facility_id 
       ,md5(nvl(a.investment_ref::varchar, 'NULL')) as facility_sk
