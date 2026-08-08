@@ -15,15 +15,17 @@ maturity_date date,
 statuses array
 );
 
-insert into int_facilities 
+-- insert into int_facilities 
 /*
-Table presents with many initial (simple) duplicates-- each value in these dupe-pairs
-is the same between them.
+Table presents with many initial simple duplicates-- once varying formats are 
+standardized (dclient_name, status, discount_rate, etc) each value in these 
+dupe-pairs is the same between them.
 
 Squish all at once with DISTINCT 
 */
 with simple_dedup as (
-select distinct md5(nvl(facility_id::varchar,'NULL')) as facility_sk
+select distinct 
+       md5(nvl(facility_id::varchar,'NULL')) as facility_sk
       ,facility_id
       ,trim(upper(client_name), ' ') as client_name
       ,fund as fund_description
@@ -83,6 +85,7 @@ the duplicates distinct by establishing "current" and "historical" records (as i
 dimension).
 
 So for both duplicate cases, we must either do option (2) or option (3)
+
 ------------------------------------------------------------------------------------------------
 ON STATUS
 ------------------------------------------------------------------------------------------------
@@ -113,6 +116,7 @@ select * exclude(rownum, facility_funding_limit), max(rownum) as max_rownum
 from numbered
 group by all
 )
+
 /*
 ------------------------------------------------------------------------------------------------
 ON FACILITY_FUNDING_LIMIT
@@ -127,6 +131,7 @@ So the approach I take here is option (3): "If the facility has two distinct
 FACILITY_FUNDING_LIMIT values, no it doesn't. Consider this a single facility record where 
 FACILITY_FUNDING_LIMIT is NULL".
 */
+
 ,normal_records as (
 select * from agged where max_rownum = 1
 )
@@ -165,4 +170,33 @@ select FACILITY_SK
       ,STATUSES
 from weird_records;
 
+create or replace table audit_facilities like callahan_db.raw.factorview_facilities_export;
+alter table audit_facilities add column record_number number(38,0), duplicate_id varchar;
+
+insert into audit_facilities
+with numbered as (
+select *
+      ,row_number() over (
+       partition by facility_id
+       order     by status, nfe
+      ) as record_number
+from callahan_db.raw.factorview_facilities_export
+)
+
+,dedup as (
+select distinct facility_id from numbered
+where record_number > 1
+)
+
+select a.*
+      ,md5(nvl(a.facility_id::varchar, 'NULL') 
+           || '||' || 
+           nvl(a.record_number::varchar, 'NULL') 
+       ) as duplicate_id
+from numbered a 
+join dedup b 
+  on a.facility_id = b.facility_id
+order by all;
+
 select * from int_facilities;
+select * from audit_facilities;
