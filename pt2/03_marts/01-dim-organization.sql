@@ -139,17 +139,17 @@ then update set
 
 
 insert into dim_organization
-select md5('NULL') as ORGANIZATION_SK
-      ,'NULL' as ORGANIZATION_ID
-      ,'NULL' as ORGANIZATION_NAME
-      ,'NULL' as INDUSTRY
-      ,'NULL' as STATE
-      ,'NULL' as RELATIONSHIP_OWNER
+select md5('NULL ORGANIZATION') as ORGANIZATION_SK
+      ,'NULL ORGANIZATION' as ORGANIZATION_ID
+      ,'NULL ORGANIZATION' as ORGANIZATION_NAME
+      ,'NULL ORGANIZATION' as INDUSTRY
+      ,'NULL ORGANIZATION' as STATE
+      ,'NULL ORGANIZATION' as RELATIONSHIP_OWNER
       ,null as DATE_ADDED
-      ,md5('NULL') as CHANGE_TRACKING_KEY
+      ,md5('NULL ORGANIZATION') as CHANGE_TRACKING_KEY
       ,1 as RECORD_VERSION_NUMBER
       ,true as IS_CURRENT_IND
       ,current_timestamp()::timestamp_tz(9) as record_valid_from_ts
       ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
-      ,md5('NULL') as SCD_ID;
+      ,md5('NULL ORGANIZATION') as SCD_ID;
 select * from dim_organization;

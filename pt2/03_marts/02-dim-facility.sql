@@ -154,5 +154,23 @@ then update set
   ,dim.SCD_ID = intr.SCD_ID
 ;
 
-
+insert into dim_facility
+select md5('NULL FACILITY') as FACILITY_SK
+      ,'NULL FACILITY' AS FACILITY_ID
+      ,'NULL FACILITY' AS CLIENT_NAME
+      ,'NULL FACILITY' AS FUND_DESCRIPTION
+      ,'NULL FACILITY' AS PRODUCT_TYPE
+      ,null AS DISCOUNT_RATE
+      ,null AS NET_FUNDS_EMPLOYED
+      ,null AS FACILITY_FUNDING_LIMIT
+      ,null AS FUNDING_DATE
+      ,null AS MATURITY_DATE
+      ,null AS STATUSES
+      ,md5('NULL FACILITY') as CHANGE_TRACKING_KEY
+      ,1 as RECORD_VERSION_NUMBER
+      ,true as IS_CURRENT_IND
+      ,current_timestamp()::timestamp_tz(9) as record_valid_from_ts
+      ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
+      ,md5('NULL FACILITY') as SCD_ID;
+      
 select * from dim_facility;
