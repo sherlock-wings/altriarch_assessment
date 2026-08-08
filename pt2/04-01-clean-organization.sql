@@ -30,7 +30,7 @@ date_added date
 
 insert into int_organization
 select affinity_org_id as organization_id
-       md5(nvl(upper(organization_name)::varchar, 'NULL') 
+      ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL') 
            || '||' ||
            nvl(industry::varchar, 'NULL') 
            || '||' ||
@@ -40,7 +40,7 @@ select affinity_org_id as organization_id
            || '||' ||
            nvl(to_date(date_added, 'mm/dd/yy')::varchar, 'NULL') 
        ) as organization_sk
-      ,upper(organization_name) as organization_name
+      ,trim(upper(organization_name), ' ') as organization_name
       ,industry
       ,state
       ,relationship_owner
@@ -56,20 +56,23 @@ qualify row_number() over (partition by upper(organization_name),
 ;
 
 create or replace transient table audit_organzation (
-  organization_id varchar,
-  organization_sk varchar,
+  affinity_org_id varchar,
   organization_name varchar,
   industry varchar,
   state varchar,
   relationship_owner varchar,
   date_added date,
+  file_name varchar,
+  file_row_number varchar,
+  file_last_modified varchar,
   record_number number(38,0),
   duplicate_id varchar
 );
 
+insert into audit_organzation
 with numbered as (
 select *
-      ,qualify row_number() over (
+      ,row_number() over (
        partition by upper(organization_name), 
                     industry, 
                     state, 
@@ -80,15 +83,19 @@ select *
 from callahan_db.raw.affinity_organizations_export
 )
 
+
 ,dupe_ls as (
   select distinct * exclude (affinity_org_id, record_number) 
   from numbered
   where record_number > 1
 )
 
-select *
-      ,md5(nvl(affinity_org_id::varchar, 'NULL') 
+select a.*
+      ,md5(nvl(a.affinity_org_id::varchar, 'NULL') 
            || '||' || 
-           nvl(record_number::varchar, 'NULL')
+           nvl(a.record_number::varchar, 'NULL')
       ) as duplicate_id
-from numbered;
+from numbered a 
+join dupe_ls b 
+  on trim(upper(a.organization_name), ' ') = trim(upper(b.organization_name), ' ')
+;
