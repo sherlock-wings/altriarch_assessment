@@ -1,3 +1,16 @@
+use role candidate_callahan;
+use schema callahan_db.marts;
+
+create or replace table dim_organization 
+like callahan_db.staging.int_organization;
+alter table dim_organization
+add column record_version_number number(38,0)
+          ,is_current_ind boolean
+          ,record_valid_from_ts timestamp_tz(9)
+          ,record_valid_to_ts timestamp_tz(9)
+          ,scd_id varchar
+;
+
 merge into dim_organization dim 
 using (
 with max_record_version_number as (
