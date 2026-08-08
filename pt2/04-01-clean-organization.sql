@@ -2,8 +2,8 @@ use role candidate_callahan;
 use schema callahan_db.staging;
 
 create or replace transient table int_organization (
-organization_id varchar,
 organization_sk varchar,
+organization_id varchar,
 organization_name varchar,
 industry varchar,
 state varchar,
@@ -30,8 +30,8 @@ change_tracking_key varchar
 */
 
 insert into int_organization
-select affinity_org_id as organization_id
-      ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL')) as organization_sk
+select md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL')) as organization_sk
+      ,affinity_org_id as organization_id
       ,trim(upper(organization_name), ' ') as organization_name
       ,nvl(industry, 'NULL') as industry
       ,state

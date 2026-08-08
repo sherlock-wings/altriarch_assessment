@@ -200,7 +200,7 @@ select *
 from stack
 ;
 
-create or replace table audit_facility like callahan_db.raw.factorview_facilities_export;
+create or replace transient table audit_facility like callahan_db.raw.factorview_facilities_export;
 alter table audit_facility add column record_number number(38,0), duplicate_id varchar;
 
 insert into audit_facility
