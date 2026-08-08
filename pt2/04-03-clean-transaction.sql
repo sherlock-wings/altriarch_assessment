@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_transactions (
+create or replace transient table int_transaction (
 transaction_sk varchar, 
 transaction_id varchar,
 transaction_date date,
@@ -14,7 +14,7 @@ amount number(35,3)
 );
 
 
-insert into int_transactions
+insert into int_transaction
 with dupes as (
 select transaction_id
 from callahan_db.raw.tenor_transactions_export
@@ -66,10 +66,10 @@ union all
 select * from weird_records
 ;
 
-create or replace transient table audit_transactions like callahan_db.raw.tenor_transactions_export;
-alter table audit_transactions add column record_number number(38,0), duplicate_id varchar;
+create or replace transient table audit_transaction like callahan_db.raw.tenor_transactions_export;
+alter table audit_transaction add column record_number number(38,0), duplicate_id varchar;
 
-insert into audit_transactions
+insert into audit_transaction
 with numbered as (
 select *
       ,row_number() over (
@@ -95,5 +95,5 @@ join dedup b
 order by all;
 
 
-select * from int_transactions;
-select * from audit_transactions;
+select * from int_transaction;
+select * from audit_transaction;

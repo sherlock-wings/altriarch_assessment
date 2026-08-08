@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_organizations (
+create or replace transient table int_organization (
 organization_id varchar,
 organization_sk varchar,
 organization_name varchar,
@@ -28,7 +28,7 @@ date_added date
     customer are blocked
 */
 
-insert into int_organizations
+insert into int_organization
 select affinity_org_id as organization_id
       ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL') 
            || '||' ||
@@ -92,5 +92,5 @@ join dupe_ls b
   on trim(upper(a.organization_name), ' ') = trim(upper(b.organization_name), ' ')
 ;
 
-select * from int_organizations;
+select * from int_organization;
 select * from audit_organizations;

@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_facilities (
+create or replace transient table int_facility (
 facility_sk varchar,
 facility_id varchar,
 client_name varchar,
@@ -15,7 +15,7 @@ maturity_date date,
 statuses array
 );
 
-insert into int_facilities 
+insert into int_facility 
 /*
 Table presents with many initial simple duplicates-- once varying formats are 
 standardized (dclient_name, status, discount_rate, etc) each value in these 
@@ -170,10 +170,10 @@ select FACILITY_SK
       ,STATUSES
 from weird_records;
 
-create or replace table audit_facilities like callahan_db.raw.factorview_facilities_export;
-alter table audit_facilities add column record_number number(38,0), duplicate_id varchar;
+create or replace table audit_facility like callahan_db.raw.factorview_facilities_export;
+alter table audit_facility add column record_number number(38,0), duplicate_id varchar;
 
-insert into audit_facilities
+insert into audit_facility
 with numbered as (
 select *
       ,row_number() over (
@@ -198,5 +198,5 @@ join dedup b
   on a.facility_id = b.facility_id
 order by all;
 
-select * from int_facilities;
-select * from audit_facilities;
+select * from int_facility;
+select * from audit_facility;

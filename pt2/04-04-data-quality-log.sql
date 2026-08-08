@@ -70,7 +70,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 null as field_name,
 'MISSING-SURROGATE-KEY' as issue_type,
 $$ 
@@ -86,7 +86,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'STATUS' as field_name,
 'INCONSISTENT-FORMATTING' as issue_type,
 $$ 
@@ -103,7 +103,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'DISCOUNT_RATE' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -122,7 +122,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'NET_FUNDS_EMPLOYED' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -139,7 +139,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'FACILITY_FUNDING_LIMIT' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -156,7 +156,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'FUNDING_DATE' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -173,7 +173,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'MATURITY_DATE' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -192,7 +192,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_TRANSACTIONS' as object_name,
+'INT_TRANSACTION' as object_name,
 null as field_name,
 'MISSING-SURROGATE-KEY' as issue_type,
 $$ 
@@ -208,7 +208,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_TRANSACTIONS' as object_name,
+'INT_TRANSACTION' as object_name,
 'TRANSACTION_DATE' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -223,7 +223,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_TRANSACTIONS' as object_name,
+'INT_TRANSACTION' as object_name,
 null as field_name,
 'MISSING-SURROGATE-FOREIGN-KEY' as issue_type,
 $$ 
@@ -241,7 +241,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_TRANSACTIONS' as object_name,
+'INT_TRANSACTION' as object_name,
 'AMOUNT' as field_name,
 'ENFORCE-TYPE' as issue_type,
 $$ 
@@ -259,7 +259,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 null as field_name,
 'DUPLICATES - SIMPLE' as issue_type,
 $$ 
@@ -275,7 +275,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'STATUS' as field_name,
 'DUPLICATES - COMPOUND' as issue_type,
 $$ 
@@ -293,7 +293,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_FACILITIES' as object_name,
+'INT_FACILITY' as object_name,
 'FACILITY_FUNDING_LIMIT' as field_name,
 'DUPLICATES - COMPOUND' as issue_type,
 $$ 
@@ -315,7 +315,7 @@ union all
 select
 'TABLE' as object_type,
 'STAGING' as object_schema,
-'INT_TRANSACTIONS' as object_name,
+'INT_TRANSACTION' as object_name,
 'FUND_DESCRIPTION' as field_name,
 'DUPLICATES - COMPOUND' as issue_type,
 $$ 
