@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_organization (
+create or replace transient table int_organizations (
 organization_id varchar,
 organization_sk varchar,
 organization_name varchar,
@@ -28,7 +28,7 @@ date_added date
     customer are blocked
 */
 
-insert into int_organization
+insert into int_organizations
 select affinity_org_id as organization_id
       ,md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL') 
            || '||' ||
@@ -41,7 +41,7 @@ select affinity_org_id as organization_id
            nvl(to_date(date_added, 'mm/dd/yy')::varchar, 'NULL') 
        ) as organization_sk
       ,trim(upper(organization_name), ' ') as organization_name
-      ,industry
+      ,nvl(industry, 'NULL') as industry
       ,state
       ,relationship_owner
       ,to_date(date_added, 'mm/dd/yy') as date_added
@@ -56,11 +56,12 @@ qualify row_number() over (partition by upper(organization_name),
 ;
 
 
-create or replace table audit_facilities like callahan_db.raw.factorview_facilities_export;
-alter table audit_facilities add column record_number number(38,0), duplicate_id varchar;
+create or replace transient table audit_organizations 
+like callahan_db.raw.affinity_organizations_export;
+alter table audit_organizations add column record_number number(38,0), duplicate_id varchar;
 
 
-insert into audit_organzation
+insert into audit_organizations
 with numbered as (
 select *
       ,row_number() over (
@@ -91,5 +92,5 @@ join dupe_ls b
   on trim(upper(a.organization_name), ' ') = trim(upper(b.organization_name), ' ')
 ;
 
-select * from int_organization;
-select * from audit_organzation;
+select * from int_organizations;
+select * from audit_organzations;
