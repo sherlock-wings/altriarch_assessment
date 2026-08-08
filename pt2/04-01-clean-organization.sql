@@ -90,3 +90,6 @@ from numbered a
 join dupe_ls b 
   on trim(upper(a.organization_name), ' ') = trim(upper(b.organization_name), ' ')
 ;
+
+select * from int_organization;
+select * from audit_organzation;
