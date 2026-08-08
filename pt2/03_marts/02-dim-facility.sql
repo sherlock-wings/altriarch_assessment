@@ -135,9 +135,7 @@ when not matched then insert (
 when matched 
  and dim.change_tracking_key <> intr.change_tracking_key
 then update set  
-   dim.FACILITY_SK = intr.FACILITY_SK
-  ,dim.FACILITY_ID = intr.FACILITY_ID
-  ,dim.CLIENT_NAME = intr.CLIENT_NAME
+   dim.CLIENT_NAME = intr.CLIENT_NAME
   ,dim.FUND_DESCRIPTION = intr.FUND_DESCRIPTION
   ,dim.PRODUCT_TYPE = intr.PRODUCT_TYPE
   ,dim.DISCOUNT_RATE = intr.DISCOUNT_RATE
@@ -172,5 +170,5 @@ select md5('NULL FACILITY') as FACILITY_SK
       ,current_timestamp()::timestamp_tz(9) as record_valid_from_ts
       ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
       ,md5('NULL FACILITY') as SCD_ID;
-      
+
 select * from dim_facility;

@@ -122,9 +122,7 @@ when not matched then insert (
 when matched 
  and dim.change_tracking_key <> intr.change_tracking_key
 then update set  
-   dim.ORGANIZATION_SK = intr.ORGANIZATION_SK
-  ,dim.ORGANIZATION_ID = intr.ORGANIZATION_ID
-  ,dim.ORGANIZATION_NAME = intr.ORGANIZATION_NAME
+   dim.ORGANIZATION_NAME = intr.ORGANIZATION_NAME
   ,dim.INDUSTRY = intr.INDUSTRY
   ,dim.STATE = intr.STATE
   ,dim.RELATIONSHIP_OWNER = intr.RELATIONSHIP_OWNER
