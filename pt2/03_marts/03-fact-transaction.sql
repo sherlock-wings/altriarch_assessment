@@ -141,6 +141,7 @@ then insert (
 )
 when matched
  and fct.change_tracking_key <> intr.change_tracking_key
+     --  ^^^ ensure re-sends of the same data "bounce off" as a no-op
 then update set
    fct.TRANSACTION_DATE = intr.TRANSACTION_DATE
   ,fct.FUND_DESCRIPTION = intr.FUND_DESCRIPTION
