@@ -362,11 +362,92 @@ The Fund descriptions from Tenor are not always consistent with the verbiage use
 Tenor may use a different name than Factorview to describe the same fund.
 $$ as issue_description,
 $$
-Defer to Factorview instead of Tenor for the proper fund names/descriptions. 
-Which fund is tied to which facility should be most authoratatively determined by the 
-Loan Servicing platform, since that is where the source-of-truth for all loans (and 
-the funds they are tied to) lives. See comments in pt2/03_marts/03-fact-transaction.sql 
+Defer to Factorview instead of Tenor for the proper fund names/descriptions.
+Which fund is tied to which facility should be most authoratatively determined by the
+Loan Servicing platform, since that is where the source-of-truth for all loans (and
+the funds they are tied to) lives. See comments in pt2/03_marts/03-fact-transaction.sql
 for more details on reasoning
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'MARTS' as object_schema,
+'FACT_TRANSACTION' as object_name,
+'FACILITY_ID' as field_name,
+'REFERENTIAL-INTEGRITY' as issue_type,
+$$
+Tenor reports transactions against facilities that do not exist in Factorview. The
+delta file's INV-70005 cites FV-9201, which is absent from FACTORVIEW_FACILITIES_EXPORT.
+$$ as issue_description,
+$$
+Keep the transaction rather than reject it -- the money moved regardless of whether the
+facility is registered, and dropping it would understate the fund. Point it at the
+'NULL FACILITY' surrogate key, set KNOWN_FACILITY_IND = false, and exclude it from the
+NET_FUNDS_EMPLOYED refresh so it cannot corrupt a real facility's balance. The indicator
+makes the orphans a queryable list for follow-up with the Factorview owners.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'AUDIT_TRANSACTION' as object_name,
+null as field_name,
+'UNPARSEABLE-VALUES' as issue_type,
+$$
+TRANSACTION_DATE and AMOUNT arrive as strings and are not guaranteed to be readable. A
+hard cast raises an error, which under the Part 3 task would abort the whole batch and
+lose the good rows alongside the bad one.
+$$ as issue_description,
+$$
+Parse with TRY_TO_DATE / TRY_TO_NUMBER so an unreadable value yields NULL instead of an
+exception, then compare against the raw string to tell "unreadable" apart from "genuinely
+empty". Rows failing that test, and rows with no TRANSACTION_ID at all, are held out of
+INT_TRANSACTION and written to AUDIT_TRANSACTION with PARSE_FAIL_IND and the offending
+field names. One bad row is quarantined; the rest of the batch still lands.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'AUDIT_TRANSACTION' as object_name,
+null as field_name,
+'DUPLICATES - CROSS-BATCH' as issue_type,
+$$
+A later file may re-send a TRANSACTION_ID already loaded, as happens with INV-50100. 
+This is not the same defect as two disagreeing copies inside one file: there is no 
+tie to break, because the later file is simply more recent.
+$$ as issue_description,
+$$
+Flag conflicts within a single batch and let re-statements with no new data bounce off. 
+Identical re-sends are absorbed by a CHANGE_TRACKING_KEY comparison in the MERGE, so 
+they update nothing and record no audit entry; re-sends carrying new values overwrite 
+and stamp RECORD_UPDATED_TS. Only within-batch disagreement still nulls the disputed 
+field.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'MARTS' as object_schema,
+'FACT_TRANSACTION' as object_name,
+null as field_name,
+'SOFT-OBSERVATION' as issue_type,
+$$
+Remittances arrive against facilities whose Factorview STATUS is CLOSED. The delta file's
+INV-70004 pays down FV-1036, which is closed.
+$$ as issue_description,
+$$
+Load normally and do not reject. A remittance after closure is not a guaranteed issue;
+final payment can sometimes settles after the facility is marked closed, and the balance 
+shows FV-1036 still carrying funds employed. Refusing the row would leave the facility
+permanently overstated. 
 $$ as issue_resolution;
 
 
