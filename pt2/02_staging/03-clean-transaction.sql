@@ -101,7 +101,6 @@ from flagged f;
 
 -- View that resolves the known-good data into the staging layer
 create or replace view v_transaction_src as
-with collapsed as (
 select transaction_sk
       ,transaction_id
       -- When it is known that a value has no conflicts, supply the value
@@ -120,29 +119,7 @@ select transaction_sk
             then max(amount) end as amount
 from v_transaction_parsed
 where not parse_fail_ind
-group by transaction_sk, transaction_id
-)
-
--- Create a change-tracking key for performant diff-checks when merging to MARTS layer
-select c.*
-      ,md5(
-        nvl(c.TRANSACTION_SK::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.TRANSACTION_ID::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.TRANSACTION_DATE::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.FUND_DESCRIPTION::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.SHARE_CLASS::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.FACILITY_ID::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.TRANSACTION_TYPE::varchar, '~NULL~')
-        || '||' ||
-        nvl(c.AMOUNT::varchar, '~NULL~')
-       ) as change_tracking_key
-from collapsed c;
+group by transaction_sk, transaction_id;
 
 
 /*
@@ -188,11 +165,12 @@ fund_description varchar,
 share_class varchar,
 facility_id varchar,
 transaction_type varchar,
-amount number(35,3),
-change_tracking_key varchar
+amount number(35,3)
 );
 
-create or replace transient table audit_transaction
+-- Permanent, not transient: this is the accumulating DQ record, the one staging object
+-- that is never cleared and whose loss would not be recoverable from a re-run.
+create or replace table audit_transaction
 like callahan_db.raw.tenor_transactions_export;
 alter table audit_transaction add column
    record_number number(38,0)
