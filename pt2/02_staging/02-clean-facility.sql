@@ -101,7 +101,8 @@ This does not give the record a single "authoratative" status, but it does let t
 when multiple statuses are present, which helps give the record context. 
 */
 ,collapse_statuses as (
-select * exclude(status), split(listagg(distinct status, ','), ',') as statuses
+select * exclude(status)
+      ,split(listagg(distinct status, ',') within group (order by status), ',') as statuses
 from simple_dedup
 group by all
 )

@@ -46,7 +46,22 @@ with max_record_version_number as (
 )
 
 ,insert_updated_org_data as (
-    select src.*
+    select src.facility_sk
+          ,src.facility_id
+          ,src.client_name
+          ,src.fund_description
+          ,src.product_type
+          ,src.discount_rate
+          ,src.net_funds_employed
+          ,src.facility_funding_limit
+          ,src.funding_date
+          ,src.maturity_date
+          -- statuses accumulate, so a facility keeps every status it has been seen with
+          ,array_sort(array_distinct(array_cat(
+             nvl(tgt.statuses, array_construct())
+            ,nvl(src.statuses, array_construct())
+           ))) as statuses
+          ,src.change_tracking_key
           ,m.maxnum + 1 as record_version_number
           ,true as is_current_ind
           ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
