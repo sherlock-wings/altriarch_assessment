@@ -1,8 +1,8 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table data_quality_log (
-log_id INT AUTOINCREMENT START 1 INCREMENT 1 PRIMARY KEY,
+create transient table if not exists data_quality_log (
+log_id INT PRIMARY KEY,
 object_type varchar,
 object_schema varchar,
 object_name varchar,
@@ -12,9 +12,15 @@ issue_description varchar,
 issue_resolution varchar
 );
 
-insert into data_quality_log 
-(object_type, object_schema, object_name, field_name, issue_type, issue_description, issue_resolution)
-select 
+truncate table data_quality_log;
+
+insert into data_quality_log
+select row_number() over (
+       order by object_schema, object_name, nvl(field_name, '~NULL~'), issue_type
+      ) as log_id
+      ,e.*
+from (
+select
 'TABLE' as object_type,
 'STAGING' as object_schema,
 'INT_ORGANIZATION' as object_name,
@@ -447,8 +453,9 @@ $$
 Load normally and do not reject. A remittance after closure is not a guaranteed issue;
 final payment can sometimes settles after the facility is marked closed, and the balance 
 shows FV-1036 still carrying funds employed. Refusing the row would leave the facility
-permanently overstated. 
-$$ as issue_resolution;
+permanently overstated.
+$$ as issue_resolution
+) e;
 
 
 

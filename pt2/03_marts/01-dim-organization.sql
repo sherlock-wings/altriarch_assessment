@@ -1,15 +1,15 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
 
-create or replace table dim_organization 
-like callahan_db.staging.int_organization;
-alter table dim_organization
-add column record_version_number number(38,0)
-          ,is_current_ind boolean
-          ,record_valid_from_ts timestamp_ntz(9)
-          ,record_valid_to_ts timestamp_ntz(9)
-          ,scd_id varchar
-;
+create table if not exists dim_organization as
+select o.*
+      ,null::number(38,0) as record_version_number
+      ,null::boolean as is_current_ind
+      ,null::timestamp_ntz(9) as record_valid_from_ts
+      ,null::timestamp_ntz(9) as record_valid_to_ts
+      ,null::varchar as scd_id
+from callahan_db.staging.int_organization o
+where false;
 
 merge into dim_organization dim 
 using (
@@ -149,5 +149,11 @@ select md5('NULL ORGANIZATION') as ORGANIZATION_SK
       ,true as IS_CURRENT_IND
       ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
       ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
-      ,md5('NULL ORGANIZATION') as SCD_ID;
+      ,md5('NULL ORGANIZATION') as SCD_ID
+-- the MERGE above is re-runnable on its own; this single row is not, so guard it
+where not exists (
+      select 1 from dim_organization
+      where organization_sk = md5('NULL ORGANIZATION')
+);
+
 select * from dim_organization;

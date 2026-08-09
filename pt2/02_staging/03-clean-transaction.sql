@@ -7,7 +7,7 @@ table, the Part 3 task fills it from the stream. Scoping everything to a batch i
 keeps the two dedup rules apart -- copies that disagree *within* a batch null the field
 they disagree on, while a later batch re-sending an id is a correction that overwrites.
 */
-create or replace transient table transaction_batch
+create transient table if not exists transaction_batch
 like callahan_db.raw.tenor_transactions_export;
 
 
@@ -157,7 +157,7 @@ where duplicate_ind
    or parse_fail_ind;
 
 
-create or replace transient table int_transaction (
+create transient table if not exists int_transaction (
 transaction_sk varchar,
 transaction_id varchar,
 transaction_date date,
@@ -168,28 +168,36 @@ transaction_type varchar,
 amount number(35,3)
 );
 
--- Permanent, not transient: this is the accumulating DQ record, the one staging object
--- that is never cleared and whose loss would not be recoverable from a re-run.
-create or replace table audit_transaction
-like callahan_db.raw.tenor_transactions_export;
-alter table audit_transaction add column
-   record_number number(38,0)
-  ,audit_record_sk varchar
-  ,duplicate_ind boolean
-  ,conflict_ind boolean
-  ,parse_fail_ind boolean
-  ,parse_fail_fields varchar
-  ,batch_ts timestamp_ntz(9);
+
+create table if not exists audit_transaction as
+select r.*
+      ,null::number(38,0) as record_number
+      ,null::varchar as audit_record_sk
+      ,null::boolean as duplicate_ind
+      ,null::boolean as conflict_ind
+      ,null::boolean as parse_fail_ind
+      ,null::varchar as parse_fail_fields
+      ,null::timestamp_ntz(9) as batch_ts
+from callahan_db.raw.tenor_transactions_export r
+where false;
 
 
+truncate table transaction_batch;
 insert into transaction_batch
 select * from callahan_db.raw.tenor_transactions_export;
 
+truncate table int_transaction;
 insert into int_transaction
 select * from v_transaction_src;
 
 insert into audit_transaction
-select * from v_transaction_audit;
+select a.*
+from v_transaction_audit a
+where not exists (
+      select 1
+      from audit_transaction t
+      where t.audit_record_sk = a.audit_record_sk
+);
 
 
 select * from int_transaction;

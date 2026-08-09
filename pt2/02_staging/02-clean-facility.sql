@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_facility (
+create transient table if not exists int_facility (
 facility_sk varchar,
 facility_id varchar,
 client_name varchar,
@@ -16,7 +16,10 @@ statuses array,
 change_tracking_key varchar
 );
 
-insert into int_facility 
+
+truncate table int_facility;
+
+insert into int_facility
 /*
 Table presents with many initial simple duplicates-- once varying formats are 
 standardized (dclient_name, status, discount_rate, etc) each value in these 
@@ -200,8 +203,14 @@ select *
 from stack
 ;
 
-create or replace transient table audit_facility like callahan_db.raw.factorview_facilities_export;
-alter table audit_facility add column record_number number(38,0), duplicate_id varchar;
+create transient table if not exists audit_facility as
+select r.*
+      ,null::number(38,0) as record_number
+      ,null::varchar as duplicate_id
+from callahan_db.raw.factorview_facilities_export r
+where false;
+
+truncate table audit_facility;
 
 insert into audit_facility
 with numbered as (

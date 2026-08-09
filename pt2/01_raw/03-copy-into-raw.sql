@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.raw;
 
-create or replace table raw.affinity_organizations_export (
+create table if not exists raw.affinity_organizations_export (
 affinity_org_id varchar,
 organization_name varchar,
 industry varchar,
@@ -23,7 +23,7 @@ from @internal_stage_csv
   )
   ;
 
-create or replace table raw.factorview_facilities_export (
+create table if not exists raw.factorview_facilities_export (
 facility_id varchar,
 client_name varchar,
 fund varchar,
@@ -52,8 +52,7 @@ from @internal_stage_csv
   ;
 
 
-
-create or replace table callahan_db.raw.tenor_transactions_export (
+create table if not exists callahan_db.raw.tenor_transactions_export (
 transaction_id varchar,
 transaction_date varchar,
 fund varchar,

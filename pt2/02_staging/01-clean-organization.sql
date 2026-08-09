@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.staging;
 
-create or replace transient table int_organization (
+create transient table if not exists int_organization (
 organization_sk varchar,
 organization_id varchar,
 organization_name varchar,
@@ -28,6 +28,8 @@ change_tracking_key varchar
     customer is frozen, and future IDs that point to the same 
     customer are blocked
 */
+
+truncate table int_organization;
 
 insert into int_organization
 select md5(nvl(trim(upper(organization_name), ' ')::varchar, '~NULL~')) as organization_sk
@@ -57,11 +59,14 @@ qualify row_number() over (partition by upper(organization_name),
 ;
 
 
-create or replace transient table audit_organization 
-like callahan_db.raw.affinity_organizations_export;
-alter table audit_organization add column record_number number(38,0)
-                                          ,duplicate_id varchar;
+create transient table if not exists audit_organization as
+select r.*
+      ,null::number(38,0) as record_number
+      ,null::varchar as duplicate_id
+from callahan_db.raw.affinity_organizations_export r
+where false;
 
+truncate table audit_organization;
 
 insert into audit_organization
 with numbered as (

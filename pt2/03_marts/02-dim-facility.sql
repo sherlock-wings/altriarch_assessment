@@ -1,15 +1,15 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
 
-create or replace table dim_facility 
-like callahan_db.staging.int_facility;
-alter table dim_facility
-add column record_version_number number(38,0)
-          ,is_current_ind boolean
-          ,record_valid_from_ts timestamp_ntz(9)
-          ,record_valid_to_ts timestamp_ntz(9)
-          ,scd_id varchar
-;
+create table if not exists dim_facility as
+select f.*
+      ,null::number(38,0) as record_version_number
+      ,null::boolean as is_current_ind
+      ,null::timestamp_ntz(9) as record_valid_from_ts
+      ,null::timestamp_ntz(9) as record_valid_to_ts
+      ,null::varchar as scd_id
+from callahan_db.staging.int_facility f
+where false;
 
 
 merge into dim_facility dim 
@@ -169,6 +169,10 @@ select md5('NULL FACILITY') as FACILITY_SK
       ,true as IS_CURRENT_IND
       ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
       ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
-      ,md5('NULL FACILITY') as SCD_ID;
+      ,md5('NULL FACILITY') as SCD_ID
+where not exists (
+      select 1 from dim_facility
+      where facility_sk = md5('NULL FACILITY')
+);
 
 select * from dim_facility;

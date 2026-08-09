@@ -1,7 +1,7 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
 
-create or replace table fact_transaction (
+create table if not exists fact_transaction (
  TRANSACTION_SK varchar
 ,TRANSACTION_ID varchar
 ,TRANSACTION_DATE date
