@@ -6,8 +6,8 @@ like callahan_db.staging.int_organization;
 alter table dim_organization
 add column record_version_number number(38,0)
           ,is_current_ind boolean
-          ,record_valid_from_ts timestamp_tz(9)
-          ,record_valid_to_ts timestamp_tz(9)
+          ,record_valid_from_ts timestamp_ntz(9)
+          ,record_valid_to_ts timestamp_ntz(9)
           ,scd_id varchar
 ;
 
@@ -30,8 +30,8 @@ with max_record_version_number as (
     select src.*
           ,m.maxnum + 1 as record_version_number
           ,true as is_current_ind
-          ,current_timestamp()::timestamp_tz(9)  as record_valid_from_ts
-          ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
+          ,current_timestamp()::timestamp_ntz(9)  as record_valid_from_ts
+          ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.organization_sk::varchar
             || '||' ||
@@ -48,12 +48,12 @@ with max_record_version_number as (
     select src.*
           ,m.maxnum + 1 as record_version_number
           ,true as is_current_ind
-          ,current_timestamp()::timestamp_tz(9) as record_valid_from_ts
-          ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
+          ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
+          ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.organization_sk::varchar
             || '||' ||
-            current_timestamp()::timestamp_tz(9)::varchar
+            current_timestamp()::timestamp_ntz(9)::varchar
           ) as scd_id
     from incoming_src src
     join existing_tgt tgt
@@ -74,7 +74,7 @@ with max_record_version_number as (
           ,tgt.RECORD_VERSION_NUMBER
           ,false as IS_CURRENT_IND
           ,tgt.RECORD_VALID_FROM_TS
-          ,dateadd(millisecond, -1, current_timestamp()::timestamp_tz(9)) as RECORD_VALID_TO_TS
+          ,dateadd(millisecond, -1, current_timestamp()::timestamp_ntz(9)) as RECORD_VALID_TO_TS
           ,tgt.SCD_ID
     from existing_tgt tgt
     left join incoming_src src 
@@ -147,7 +147,7 @@ select md5('NULL ORGANIZATION') as ORGANIZATION_SK
       ,md5('NULL ORGANIZATION') as CHANGE_TRACKING_KEY
       ,1 as RECORD_VERSION_NUMBER
       ,true as IS_CURRENT_IND
-      ,current_timestamp()::timestamp_tz(9) as record_valid_from_ts
-      ,'9999-12-31 23:59:59 -0700'::timestamp_tz(9) as record_valid_to_ts
+      ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
+      ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
       ,md5('NULL ORGANIZATION') as SCD_ID;
 select * from dim_organization;

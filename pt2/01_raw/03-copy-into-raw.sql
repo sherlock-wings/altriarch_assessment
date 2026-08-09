@@ -1,17 +1,6 @@
 use role candidate_callahan;
 use schema callahan_db.raw;
 
-
-create or replace file format filefmt_csv
-type = csv
-field_delimiter = ','
-field_optionally_enclosed_by = '"'
-skip_header = 1;
-
-create or replace stage internal_stage_csv
-file_format = filefmt_csv
-directory = (enable = true);
-
 create or replace table raw.affinity_organizations_export (
 affinity_org_id varchar,
 organization_name varchar,
@@ -30,8 +19,9 @@ select $1, $2, $3, $4, $5, $6,
        metadata$filename as file_name, metadata$file_row_number as file_row_number,
        metadata$file_last_modified as file_last_modified
 from @internal_stage_csv
-(file_format => filefmt_csv, pattern => '.*affinity.*')
-);
+  (file_format => filefmt_csv, pattern => '.*affinity.*')
+  )
+  force = true;
 
 create or replace table raw.factorview_facilities_export (
 facility_id varchar,
@@ -57,8 +47,10 @@ select $1, $2, $3, $4, $5, $6,
        metadata$filename as file_name, metadata$file_row_number as file_row_number,
        metadata$file_last_modified as file_last_modified
 from @internal_stage_csv
-(file_format => filefmt_csv, pattern => '.*factorview_facilities.*')
-);
+  (file_format => filefmt_csv, pattern => '.*factorview_facilities.*')
+  )
+  force = true;
+
 
 
 create or replace table callahan_db.raw.tenor_transactions_export (
@@ -79,6 +71,7 @@ from (
 select $1, $2, $3, $4, $5, $6, $7,
        metadata$filename as file_name, metadata$file_row_number as file_row_number,
        metadata$file_last_modified as file_last_modified
-from @callahan_db.raw.internal_stage_csv
-(file_format => callahan_db.raw.filefmt_csv, pattern => '.*tenor_transactions_export.*')
-);
+from @internal_stage_csv
+  (file_format => filefmt_csv, pattern => '.*tenor_transactions_export.*')
+  )
+  force = true;

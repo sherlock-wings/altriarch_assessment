@@ -13,8 +13,8 @@ create or replace table fact_transaction (
 ,FACILITY_BALANCE varchar
 ,KNOWN_FACILITY_IND boolean
 ,ADJUSTMENT_IND boolean
-,RECORD_INSERTED_TS timestamp_tz(9)
-,RECORD_UPDATED_TS timestamp_tz(9)
+,RECORD_INSERTED_TS timestamp_ntz(9)
+,RECORD_UPDATED_TS timestamp_ntz(9)
 );
 
 
@@ -75,7 +75,7 @@ select * exclude(known_facility_ind, adjustment_ind)
       ) as facility_balance
      ,known_facility_ind
      ,adjustment_ind
-     ,current_timestamp()::timestamp_tz(9) as record_inserted_ts
+     ,current_timestamp()::timestamp_ntz(9) as record_inserted_ts
      ,null as record_updated_ts
 from init_fact
 ) intr 
@@ -123,4 +123,6 @@ then update set
   ,fct.ADJUSTMENT_IND = intr.ADJUSTMENT_IND
   ,fct.RECORD_UPDATED_TS = current_timestamp();
 
+-- Clear raw table to prepare for next load
+truncate table callahan_db.raw.tenor_transactions_export;
 select * from fact_transaction order by facility_sk, transaction_date, transaction_id;

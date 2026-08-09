@@ -34,7 +34,7 @@ from (
     qualify row_number() over (
            partition by facility_sk
            order by transaction_date desc
-          ) = 1;
+          ) = 1
 ) src
 where tgt.facility_sk = src.facility_sk
 ;

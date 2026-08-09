@@ -57,13 +57,13 @@ qualify row_number() over (partition by upper(organization_name),
 ;
 
 
-create or replace transient table audit_organizations 
+create or replace transient table audit_organization 
 like callahan_db.raw.affinity_organizations_export;
-alter table audit_organizations add column record_number number(38,0)
+alter table audit_organization add column record_number number(38,0)
                                           ,duplicate_id varchar;
 
 
-insert into audit_organizations
+insert into audit_organization
 with numbered as (
 select *
       ,row_number() over (

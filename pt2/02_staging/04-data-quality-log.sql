@@ -183,9 +183,7 @@ $$ as issue_description,
 $$
 Use CASE statements to enumerate and parse all the various string formatted
 dates into true dates via TO_DATE()
-$$ as issue_resolution
-
-select 
+$$ as issue_resolution 
 
 union all
 
