@@ -26,7 +26,7 @@ Squish all at once with DISTINCT
 */
 with simple_dedup as (
 select distinct 
-       md5(nvl(facility_id::varchar,'NULL')) as facility_sk
+       md5(nvl(facility_id::varchar,'~NULL~')) as facility_sk
       ,facility_id
       ,trim(upper(client_name), ' ') as client_name
       ,fund as fund_description
@@ -175,27 +175,27 @@ from weird_records
 
 select *
       ,md5(
-       nvl(FACILITY_SK::varchar, 'NULL')
+       nvl(FACILITY_SK::varchar, '~NULL~')
        || '||' ||
-       nvl(FACILITY_ID::varchar, 'NULL')
+       nvl(FACILITY_ID::varchar, '~NULL~')
        || '||' ||
-       nvl(CLIENT_NAME::varchar, 'NULL')
+       nvl(CLIENT_NAME::varchar, '~NULL~')
        || '||' ||
-       nvl(FUND_DESCRIPTION::varchar, 'NULL')
+       nvl(FUND_DESCRIPTION::varchar, '~NULL~')
        || '||' ||
-       nvl(PRODUCT_TYPE::varchar, 'NULL')
+       nvl(PRODUCT_TYPE::varchar, '~NULL~')
        || '||' ||
-       nvl(DISCOUNT_RATE::varchar, 'NULL')
+       nvl(DISCOUNT_RATE::varchar, '~NULL~')
        || '||' ||
-       nvl(NET_FUNDS_EMPLOYED::varchar, 'NULL')
+       nvl(NET_FUNDS_EMPLOYED::varchar, '~NULL~')
        || '||' ||
-       nvl(try_cast(null as number(35,3))::varchar, 'NULL') 
+       nvl(try_cast(null as number(35,3))::varchar, '~NULL~') 
        || '||' ||
-       nvl(FUNDING_DATE::varchar, 'NULL')
+       nvl(FUNDING_DATE::varchar, '~NULL~')
        || '||' ||
-       nvl(MATURITY_DATE::varchar, 'NULL')
+       nvl(MATURITY_DATE::varchar, '~NULL~')
        || '||' ||
-       nvl(STATUSES::varchar, 'NULL')
+       nvl(STATUSES::varchar, '~NULL~')
        ) as change_tracking_key
 from stack
 ;
@@ -219,9 +219,9 @@ where record_number > 1
 )
 
 select a.*
-      ,md5(nvl(a.facility_id::varchar, 'NULL') 
+      ,md5(nvl(a.facility_id::varchar, '~NULL~') 
            || '||' || 
-           nvl(a.record_number::varchar, 'NULL') 
+           nvl(a.record_number::varchar, '~NULL~') 
        ) as duplicate_id
 from numbered a 
 join dedup b 
