@@ -34,7 +34,7 @@ with null_sk as (
 
   select f.facility_sk
         ,f.facility_balance*-1 as facility_balance
-  from fact_transaction f 
+  from v_fact_transaction f
   left join null_sk n
           on f.facility_sk = n.facility_sk
   where n.facility_sk is null

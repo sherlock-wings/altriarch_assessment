@@ -327,10 +327,9 @@ is NULL. Follow-up would be required to diagnose and resolve
 the upstream issue that causes this problem. Likely solution 
 would require making records distinct with timing-based 
 metadata.
-$$ as issue_resolution;
+$$ as issue_resolution
 
-
-union all 
+union all
 
 select
 'TABLE' as object_type,
@@ -348,9 +347,9 @@ of truth for how much funding is actually deployed at current for each facility.
 the NFE values in DIM_FACILITY to reflect the latest known balance as calculated from 
 the Tenor data. See comments in pt2/03_marts/04-correct-nfe-dim-facility.sql for more 
 details on Reasoning.
-$$ as issue_resolution;
+$$ as issue_resolution
 
-union all 
+union all
 
 select
 'TABLE' as object_type,

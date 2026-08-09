@@ -14,53 +14,38 @@ amount number(35,3)
 
 
 insert into int_transaction
-with dupes as (
-select transaction_id
+with parsed as (
+select md5(nvl(transaction_id::varchar, 'NULL')) as transaction_sk
+      ,transaction_id
+      ,to_date(transaction_date, 'dd-mon-yy') as transaction_date
+      ,fund as fund_description
+      ,share_class
+      ,nvl(investment_ref, 'NULL') as facility_id
+      ,transaction_type
+      ,case
+         when regexp_like(amount, '^\\(.*\\)$')
+         then regexp_replace(amount, ',|\\(|\\)', '')::number(35,3)*-1
+         else regexp_replace(amount, ',|\\(|\\)', '')::number(35,3)
+       end as amount
 from callahan_db.raw.tenor_transactions_export
-group by all having count(*) > 1
 )
 
-,normal_records as ( 
-select md5(nvl(a.transaction_id::varchar, 'NULL')) as transaction_sk
-      ,a.transaction_id
-      ,to_date(a.transaction_date, 'dd-mon-yy') as transaction_date
-      ,a.fund as fund_description
-      ,a.share_class
-      ,nvl(a.investment_ref, 'NULL') as facility_id 
-      ,a.transaction_type
-      ,case 
-         when regexp_like(a.amount, '^\\(.*\\)$')
-         then regexp_replace(a.amount, ',|\\(|\\)', '')::number(35,3)*-1
-         else regexp_replace(a.amount, ',|\\(|\\)', '')::number(35,3)
-       end as amount
-from callahan_db.raw.tenor_transactions_export a 
-left join dupes b
-       on a.transaction_id = b.transaction_id
-where b.transaction_id is null
-)
-
-,weird_records as (
-select distinct 
-       md5(nvl(a.transaction_id::varchar, 'NULL')) as transaction_sk
-      ,a.transaction_id
-      ,to_date(a.transaction_date, 'dd-mon-yy') as transaction_date
-      ,'NULL' as fund_description
-      ,a.share_class
-      ,nvl(a.investment_ref, 'NULL') as facility_id 
-      ,a.transaction_type
-      ,case 
-         when regexp_like(a.amount, '^\\(.*\\)$')
-         then regexp_replace(a.amount, ',|\\(|\\)', '')::number(35,3)*-1
-         else regexp_replace(a.amount, ',|\\(|\\)', '')::number(35,3)
-       end as amount
-from callahan_db.raw.tenor_transactions_export a 
-join dupes b
-  on a.transaction_id = b.transaction_id
-)
-
-select * from normal_records
-union all
-select * from weird_records
+select transaction_sk
+      ,transaction_id
+      ,case when count(distinct nvl(transaction_date::varchar, '~NULL~')) = 1
+            then max(transaction_date) end as transaction_date
+      ,case when count(distinct nvl(fund_description, '~NULL~')) = 1
+            then max(fund_description) end as fund_description
+      ,case when count(distinct nvl(share_class, '~NULL~')) = 1
+            then max(share_class) end as share_class
+      ,case when count(distinct nvl(facility_id, '~NULL~')) = 1
+            then max(facility_id) end as facility_id
+      ,case when count(distinct nvl(transaction_type, '~NULL~')) = 1
+            then max(transaction_type) end as transaction_type
+      ,case when count(distinct nvl(amount::varchar, '~NULL~')) = 1
+            then max(amount) end as amount
+from parsed
+group by transaction_sk, transaction_id
 ;
 
 create or replace transient table audit_transaction like callahan_db.raw.tenor_transactions_export;

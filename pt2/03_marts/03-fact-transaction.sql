@@ -11,7 +11,6 @@ create or replace table fact_transaction (
 ,FACILITY_ID varchar
 ,TRANSACTION_TYPE varchar
 ,AMOUNT number(35,3)
-,FACILITY_BALANCE varchar
 ,KNOWN_FACILITY_IND boolean
 ,ADJUSTMENT_IND boolean
 ,RECORD_INSERTED_TS timestamp_ntz(9)
@@ -44,7 +43,6 @@ Rationale:
 */
 merge into fact_transaction fct 
 using (
-with init_fact as (
 select tr.TRANSACTION_SK
       ,tr.TRANSACTION_ID
       ,tr.TRANSACTION_DATE
@@ -60,27 +58,18 @@ select tr.TRANSACTION_SK
          else false
        end as known_facility_ind
       ,case
-         when transaction_type = 'Remittance'
-          and amount < 0 
+         when tr.transaction_type = 'Remittance'
+          and tr.amount < 0
          then true
          else false
        end as adjustment_ind
+      ,current_timestamp()::timestamp_ntz(9) as record_inserted_ts
+      ,null as record_updated_ts
 from callahan_db.staging.int_transaction tr
 left join dim_facility fl
        on fl.facility_id = tr.facility_id
-)
-
-select * exclude(known_facility_ind, adjustment_ind)
-      ,sum(amount) over (
-       partition by facility_id 
-       order     by transaction_date
-      ) as facility_balance
-     ,known_facility_ind
-     ,adjustment_ind
-     ,current_timestamp()::timestamp_ntz(9) as record_inserted_ts
-     ,null as record_updated_ts
-from init_fact
-) intr 
+      and fl.is_current_ind
+) intr
 on fct.transaction_id = intr.transaction_id
 when not matched 
 then insert (
@@ -93,7 +82,6 @@ then insert (
   ,FACILITY_ID
   ,TRANSACTION_TYPE
   ,AMOUNT
-  ,FACILITY_BALANCE
   ,KNOWN_FACILITY_IND
   ,ADJUSTMENT_IND
   ,RECORD_INSERTED_TS
@@ -108,7 +96,6 @@ then insert (
   ,intr.FACILITY_ID
   ,intr.TRANSACTION_TYPE
   ,intr.AMOUNT
-  ,intr.FACILITY_BALANCE
   ,intr.KNOWN_FACILITY_IND
   ,intr.ADJUSTMENT_IND
   ,intr.RECORD_INSERTED_TS
@@ -123,11 +110,17 @@ then update set
   ,fct.FACILITY_ID = intr.FACILITY_ID
   ,fct.TRANSACTION_TYPE = intr.TRANSACTION_TYPE
   ,fct.AMOUNT = intr.AMOUNT
-  ,fct.FACILITY_BALANCE = intr.FACILITY_BALANCE
   ,fct.KNOWN_FACILITY_IND = intr.KNOWN_FACILITY_IND
   ,fct.ADJUSTMENT_IND = intr.ADJUSTMENT_IND
   ,fct.RECORD_UPDATED_TS = current_timestamp();
 
--- Clear raw table to prepare for next load
-truncate table callahan_db.raw.tenor_transactions_export;
-select * from fact_transaction order by facility_sk, transaction_date, transaction_id;
+
+create or replace view v_fact_transaction as
+select f.*
+      ,sum(f.amount) over (
+       partition by f.facility_id
+       order     by f.transaction_date
+      ) as facility_balance
+from fact_transaction f;
+
+select * from v_fact_transaction order by facility_sk, transaction_date, transaction_id;
