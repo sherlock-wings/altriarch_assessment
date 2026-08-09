@@ -8,6 +8,7 @@ create or replace table fact_transaction (
 ,FUND_DESCRIPTION varchar
 ,SHARE_CLASS varchar
 ,FACILITY_SK varchar
+,FACILITY_ID varchar
 ,TRANSACTION_TYPE varchar
 ,AMOUNT number(35,3)
 ,FACILITY_BALANCE varchar
@@ -50,6 +51,7 @@ select tr.TRANSACTION_SK
       ,nvl(fl.fund_description, tr.fund_description) as fund_description
       ,tr.SHARE_CLASS
       ,nvl(fl.FACILITY_SK, md5('NULL FACILITY')) as FACILITY_SK
+      ,tr.facility_id
       ,tr.TRANSACTION_TYPE
       ,tr.AMOUNT
       ,case
@@ -70,7 +72,7 @@ left join dim_facility fl
 
 select * exclude(known_facility_ind, adjustment_ind)
       ,sum(amount) over (
-       partition by facility_sk 
+       partition by facility_id 
        order     by transaction_date
       ) as facility_balance
      ,known_facility_ind
@@ -88,6 +90,7 @@ then insert (
   ,FUND_DESCRIPTION
   ,SHARE_CLASS
   ,FACILITY_SK
+  ,FACILITY_ID
   ,TRANSACTION_TYPE
   ,AMOUNT
   ,FACILITY_BALANCE
@@ -102,6 +105,7 @@ then insert (
   ,intr.FUND_DESCRIPTION
   ,intr.SHARE_CLASS
   ,intr.FACILITY_SK
+  ,intr.FACILITY_ID
   ,intr.TRANSACTION_TYPE
   ,intr.AMOUNT
   ,intr.FACILITY_BALANCE
@@ -116,6 +120,7 @@ then update set
   ,fct.FUND_DESCRIPTION = intr.FUND_DESCRIPTION
   ,fct.SHARE_CLASS = intr.SHARE_CLASS
   ,fct.FACILITY_SK = intr.FACILITY_SK
+  ,fct.FACILITY_ID = intr.FACILITY_ID
   ,fct.TRANSACTION_TYPE = intr.TRANSACTION_TYPE
   ,fct.AMOUNT = intr.AMOUNT
   ,fct.FACILITY_BALANCE = intr.FACILITY_BALANCE

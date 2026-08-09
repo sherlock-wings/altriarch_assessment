@@ -28,13 +28,21 @@ Rationale:
 update dim_facility tgt 
 set tgt.net_funds_employed = src.facility_balance
 from (
-    select facility_sk
-          ,facility_balance
-    from fact_transaction
-    qualify row_number() over (
-           partition by facility_sk
-           order by transaction_date desc
-          ) = 1
+with null_sk as (
+  select facility_sk from dim_facility where client_name = 'NULL FACILITY'
+)
+
+  select f.facility_sk
+        ,f.facility_balance*-1 as facility_balance
+  from fact_transaction f 
+  left join null_sk n
+          on f.facility_sk = n.facility_sk
+  where n.facility_sk is null
+  -- do not set NFE for Unknown facilities
+  qualify row_number() over (
+          partition by f.facility_sk
+          order by f.transaction_date desc
+        ) = 1
 ) src
 where tgt.facility_sk = src.facility_sk
 ;
