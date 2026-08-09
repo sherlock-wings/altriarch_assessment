@@ -330,4 +330,46 @@ metadata.
 $$ as issue_resolution;
 
 
+union all 
+
+select
+'TABLE' as object_type,
+'MARTS' as object_schema,
+'DIM_FACILITY' as object_name,
+'NET_FUNDS_EMPLOYED' as field_name,
+'DATA CONFLICT' as issue_type,
+$$ 
+The Net-Funds-Employed value is incosistent with the transactions being reported against each 
+facility in Tenor.
+$$ as issue_description,
+$$
+Because Tenor actually tracks the firms individual transactions, consider it as the source 
+of truth for how much funding is actually deployed at current for each facility. Update 
+the NFE values in DIM_FACILITY to reflect the latest known balance as calculated from 
+the Tenor data. See comments in pt2/03_marts/04-correct-nfe-dim-facility.sql for more 
+details on Reasoning.
+$$ as issue_resolution;
+
+union all 
+
+select
+'TABLE' as object_type,
+'MARTS' as object_schema,
+'FACT_TRANSACTION' as object_name,
+'FUND_DESCRIPTION' as field_name,
+'DATA CONFLICT' as issue_type,
+$$ 
+The Fund descriptions from Tenor are not always consistent with the verbiage used in Factorview.
+Tenor may use a different name than Factorview to describe the same fund.
+$$ as issue_description,
+$$
+Defer to Factorview instead of Tenor for the proper fund names/descriptions. 
+Which fund is tied to which facility should be most authoratatively determined by the 
+Loan Servicing platform, since that is where the source-of-truth for all loans (and 
+the funds they are tied to) lives. See comments in pt2/03_marts/03-fact-transaction.sql 
+for more details on reasoning
+$$ as issue_resolution;
+
+
+
 select * from data_quality_log order by 2,3,4,5,6;

@@ -21,7 +21,7 @@ select $1, $2, $3, $4, $5, $6,
 from @internal_stage_csv
   (file_format => filefmt_csv, pattern => '.*affinity.*')
   )
-  force = true;
+  ;
 
 create or replace table raw.factorview_facilities_export (
 facility_id varchar,
@@ -49,7 +49,7 @@ select $1, $2, $3, $4, $5, $6,
 from @internal_stage_csv
   (file_format => filefmt_csv, pattern => '.*factorview_facilities.*')
   )
-  force = true;
+  ;
 
 
 
@@ -74,4 +74,4 @@ select $1, $2, $3, $4, $5, $6, $7,
 from @internal_stage_csv
   (file_format => filefmt_csv, pattern => '.*tenor_transactions_export.*')
   )
-  force = true;
+  ;
