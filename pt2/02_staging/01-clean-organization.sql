@@ -30,19 +30,19 @@ change_tracking_key varchar
 */
 
 insert into int_organization
-select md5(nvl(trim(upper(organization_name), ' ')::varchar, 'NULL')) as organization_sk
+select md5(nvl(trim(upper(organization_name), ' ')::varchar, '~NULL~')) as organization_sk
       ,affinity_org_id as organization_id
       ,trim(upper(organization_name), ' ') as organization_name
-      ,nvl(industry, 'NULL') as industry
+      ,nvl(industry, '~NULL~') as industry
       ,state
       ,relationship_owner
       ,to_date(date_added, 'mm/dd/yy') as date_added
       ,md5(
-       nvl(industry::varchar, 'NULL') 
+       nvl(industry::varchar, '~NULL~') 
        || '||' ||
-       nvl(state::varchar, 'NULL')
+       nvl(state::varchar, '~NULL~')
        || '||' ||
-       nvl(relationship_owner::varchar, 'NULL')
+       nvl(relationship_owner::varchar, '~NULL~')
        || '||' ||
        to_date(date_added, 'mm/dd/yy')::varchar
       ) as change_tracking_key
@@ -85,9 +85,9 @@ from callahan_db.raw.affinity_organizations_export
 )
 
 select a.*
-      ,md5(nvl(a.affinity_org_id::varchar, 'NULL') 
+      ,md5(nvl(a.affinity_org_id::varchar, '~NULL~') 
            || '||' || 
-           nvl(a.record_number::varchar, 'NULL')
+           nvl(a.record_number::varchar, '~NULL~')
       ) as duplicate_id
 from numbered a 
 join dupe_ls b 
