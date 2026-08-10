@@ -2,3 +2,5 @@
 workbench/
 .venv
 .claude/
+.env
+__pycache__/
