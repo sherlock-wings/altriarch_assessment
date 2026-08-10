@@ -1,11 +1,55 @@
--- TODO: part 7
+# Private Credit Data Platform
+
+A layered Snowflake build over three siloed sources (Factorview for loan servicing, Affinity
+for CRM, and Tenor for fund accounting), with `RAW` → `STAGING` → `MARTS`, an SCD2 star schema, a
+stream-and-task pipeline that processes new Tenor activity automatically, three read-only
+roles, and a local FastAPI service that reads and writes through the mart.
+
+## Running it from a fresh clone
+
+### Prerequisites
+
+- `uv`, and a Snowflake connection in `~/.snowflake/connections.toml` named `assessment`.
+  `00_run_all.sh` reads `SNOWFLAKE_CONNECTION` and falls back to that name.
+- The connecting user needs `CANDIDATE_CALLAHAN` (every script opens with `use role`), plus
+  the three Part 5 roles, since `pt5/05-verify.sql` switches into each of them in turn.
+- Run from the repo root. `pt3/04-load-delta.sql` PUTs a repo-relative path.
+- The four source CSVs are committed under `pt2/01_raw/source_data/`.
+
+### One command
+
+```bash
+uv sync
+./00_run_all.sh -y
+```
+
+`-y` skips the destructive-action prompt. The script drops `RAW`, `STAGING` and `MARTS`
+cascade and rebuilds them from the CSVs, in this order:
+
+`pt1` schemas → `pt2` raw load, staging, marts → `pt3` stream, stored procedure, task, delta
+load → wait for the task to drain the stream → `pt4` analytics and verification → `pt6` API
+views → `pt5` LP summary view, roles, grants, verification.
+
+Five to ten minutes, most of it waiting on the task, which fires within about 30s of rows
+landing. `set -euo pipefail` aborts at the first failing statement, and the last `==>` marker
+in the output names the file that failed. The three roles are account-level objects and
+survive teardown, which is why `pt5` runs again at the end to replay the schema-scoped grants.
+
+Statements are streamed to a single `snow sql` session rather than one invocation per file, so
+an account on password + MFA is prompted a handful of times rather than twenty.
+
+Afterwards the pipeline is live: anything landing in `RAW.TENOR_TRANSACTIONS_EXPORT` from that
+point on is picked up automatically. Two demo scripts, described under Part 3 below, are left
+to run by hand. The API is a separate step, described under Part 6.
 
 ## Part 1: Data model
 
 `RAW`, `STAGING` and `MARTS` are created in `pt1/01-schemas.sql`. The deployed MARTS DDL is in
 [`docs/marts-ddl.sql`](docs/marts-ddl.sql): two SCD2 dimensions, one fact table, and three views.
-[`docs/pipeline-dag.md`](docs/pipeline-dag.md) diagrams the end-to-end flow across all three
-schemas, the star schema, and every object the pipeline builds.
+`docs/img/` diagrams the end-to-end flow across all three schemas
+([`01-layer-flow.png`](docs/img/01-layer-flow.png)), the star schema
+([`02-star-schema.png`](docs/img/02-star-schema.png)), and every object the pipeline builds
+([`03-object-dag.png`](docs/img/03-object-dag.png)).
 The views are part of the design. 
   1. `V_FACT_TRANSACTION_SRC` resolves the facility key and prefers Factorview's fund description over 
       Tenor's where the two disagree
@@ -69,6 +113,63 @@ exist in Factorview, so the row was kept, pointed at the `NULL FACILITY` surroga
 `KNOWN_FACILITY_IND = false`, and excluded from the net-funds-employed refresh so it could not
 corrupt a real facility's balance.
 
+### Verifying the delta run
+
+`pt3/05-verify.sql` runs as the last step of the Part 3 sequence in `00_run_all.sh`:
+
+| Check | Expected on a fresh build |
+|---|---|
+| Task history | at least one `SUCCEEDED`, `error_message` null |
+| Stream state | `stream_has_data` false: the task drained it |
+| Row counts | `raw_rows` 182, `fact_rows` 180, `fact_distinct_ids` 180, `audit_rows` 2 |
+| Delta disposition | `INV-70001` through `INV-70005` carry this run's `record_inserted_ts`; `INV-50100` still carries the initial load's, because the re-send matched and did nothing |
+| NFE movement | exactly 4 facilities: FV-1001 −33,565.12, FV-1011 −71,931.08, FV-1023 −16,091.32, FV-1036 −50,693.51 |
+| Referential integrity | 0 orphan facilities and 0 duplicate organization keys in both staging and marts; the dimension join returns 41 rows, equal to `DIM_FACILITY`, so it does not fan out |
+| Borrower provenance | `AFFINITY` 31, `FACTORVIEW` 2 |
+
+`fact_rows = fact_distinct_ids` is the load-integrity check: if they diverge, the merge key
+leaked. `INT_TRANSACTION` is deliberately not asserted on: `SP_LOAD_TRANSACTIONS` rewrites it
+with the current stream batch only, so it holds the last run's work rather than a running total.
+
+### Demonstrating idempotency
+
+`pt3/06-resend-delta.sql` re-COPYs the entire delta file with `force = true`, which is the
+fund-administrator-resends-a-file case:
+
+```bash
+uv run snow sql -f pt3/06-resend-delta.sql
+sleep 60
+uv run snow sql -f pt3/05-verify.sql
+```
+
+| | Before | After |
+|---|---|---|
+| `raw_rows` | 182 | **188**: RAW is append-only, so the re-send does land |
+| `fact_rows` / `fact_distinct_ids` | 180 / 180 | **180 / 180** (unchanged) |
+| NFE movement | 4 facilities | **the same 4 rows, the same amounts** |
+
+Every re-sent row matched an existing fact on `TRANSACTION_ID` with an unchanged
+`CHANGE_TRACKING_KEY`, so the MERGE took no action and no balance moved. Idempotency is a
+property of the merge key, not of the loader, which is why the duplicate reaches RAW and stops
+there.
+
+### Demonstrating quarantine
+
+`pt3/07-quarantine-demo.sql` inserts two deliberately broken rows into RAW: one with an
+unparseable date and a non-numeric amount (`32-Foo-99` / `not-a-number`), one with a null
+`transaction_id`:
+
+```bash
+uv run snow sql -f pt3/07-quarantine-demo.sql
+sleep 60
+uv run snow sql -q "select count(*) from callahan_db.staging.audit_transaction"
+```
+
+The script prints the audit count before and after, but the second print happens before the
+task has fired, hence the separate check: `AUDIT_TRANSACTION` goes from 2 to **4**, and
+`FACT_TRANSACTION` stays at **180**. Neither bad row reaches the fact table, and neither is
+silently dropped. Run this script once; see the limitation below.
+
 ### Known limitation
 
 `SP_LOAD_TRANSACTIONS` inserts into `STAGING.AUDIT_TRANSACTION` without the `AUDIT_RECORD_SK`
@@ -80,18 +181,19 @@ facts themselves stay correct because the merge is keyed on `TRANSACTION_ID`.
 
 One script per question in `pt4/`, plus `pt4/05-verify.sql`. All read-only. Every query
 filters `IS_CURRENT_IND` on both dimensions and excludes the `NULL FACILITY` and
-`NULL ORGANIZATION` guard rows. Results below are from the Snowflake run.
+`NULL ORGANIZATION` guard rows. Results below are from a fresh `./00_run_all.sh` build, with
+no hand-posted remittances, so they reproduce exactly.
 
 ### Total outstanding balance
 
-**$51,282,728.71 across 40 facilities.** `NET_FUNDS_EMPLOYED` is the Tenor running balance
+**$51,307,728.71 across 40 facilities.** `NET_FUNDS_EMPLOYED` is the Tenor running balance
 (Part 2's conflict resolution), so this is the transaction ledger's view of funds deployed,
 not Factorview's stated one.
 
 | Status | Facilities | Outstanding | % of total |
 |---|---:|---:|---:|
-| ACTIVE | 26 | $28,954,443.58 | 56.46 |
-| WATCH-LIST | 6 | $10,680,166.51 | 20.83 |
+| ACTIVE | 26 | $28,979,443.58 | 56.48 |
+| WATCH-LIST | 6 | $10,680,166.51 | 20.82 |
 | CLOSED | 4 | $5,735,894.23 | 11.18 |
 | PAID-OFF | 3 | $5,092,494.75 | 9.93 |
 | UNKNOWN | 1 | $819,729.64 | 1.60 |
@@ -103,7 +205,7 @@ Missing and invalid balances fall into three cases:
   dropped or assumed to be zero. No facility in the mart has a null balance.
 - **Outside the total.** Five transactions cite facilities Factorview has never seen
   (FV-9101 through FV-9104, FV-9201). They sit on the `NULL FACILITY` guard and move no
-  facility balance, so $70,385.05 of remittance is outstanding somewhere outside the $51.28M.
+  facility balance, so $70,385.05 of remittance is outstanding somewhere outside the $51.31M.
   It shows up as a reconciling item rather than getting netted in silently.
 - **Closed but not zero.** $10,828,388.98 across seven facilities sits on statuses Factorview
   calls CLOSED or PAID-OFF, because Tenor's history never remits them to zero. The
@@ -115,15 +217,15 @@ The UNKNOWN row is FV-1004, whose status Part 2 nulled when its two source copie
 ### Top 5 borrowers by outstanding exposure
 
 Open means `ACTIVE` or `WATCH-LIST`. Watch-list is a credit-risk flag rather than a lifecycle
-state. `WATCH-LIST`-flagged facilities are still funded and the money is still out. Exposure aggregates at the borrower, so Copper Elm's two facilities count once. The open portfolio is $39,634,610.09, 77.29% of the portfolio.
+state. `WATCH-LIST`-flagged facilities are still funded and the money is still out. Exposure aggregates at the borrower, so Copper Elm's two facilities count once. The open portfolio is $39,659,610.09, 77.30% of the portfolio.
 
 | Borrower | Facilities | Exposure | % of open portfolio | % of portfolio |
 |---|---:|---:|---:|---:|
-| COPPER ELM FACTORING, INC. | 2 | $4,053,787.54 | 10.23 | 7.90 |
+| COPPER ELM FACTORING, INC. | 2 | $4,053,787.54 | 10.22 | 7.90 |
 | SHORELINE COMMERCIAL FINANCE | 2 | $3,358,130.15 | 8.47 | 6.55 |
 | HARBOR REACH FUNDING | 1 | $3,021,553.55 | 7.62 | 5.89 |
-| LONGVIEW TRADE CREDIT | 2 | $2,963,409.31 | 7.48 | 5.78 |
-| ELMGROVE CAPITAL PARTNERS LP | 1 | $2,305,759.29 | 5.82 | 4.50 |
+| LONGVIEW TRADE CREDIT | 2 | $2,963,409.31 | 7.47 | 5.78 |
+| ELMGROVE CAPITAL PARTNERS LP | 1 | $2,305,759.29 | 5.81 | 4.49 |
 
 The table gives both denominators because "share of total portfolio exposure" reads either way.
 The filter holds back $11,648,118.62: CLOSED (4 facilities, $5,735,894.23), PAID-OFF (3,
@@ -171,17 +273,17 @@ join rather than an inner one so a facility cannot drop out on a miss.
 
 | Industry | Borrowers | Facilities | Exposure | Open exposure | % of total portfolio |
 |---|---:|---:|---:|---:|---:|
-| Transportation & Logistics | 3 | 6 | $8,224,765.77 | $7,612,716.28 | 16.04 |
-| INDUSTRY NOT SET | 4 | 5 | $7,487,920.86 | $7,487,920.86 | 14.60 |
+| Transportation & Logistics | 3 | 6 | $8,249,765.77 | $7,637,716.28 | 16.08 |
+| INDUSTRY NOT SET | 4 | 5 | $7,487,920.86 | $7,487,920.86 | 14.59 |
 | Manufacturing | 3 | 5 | $4,893,977.52 | $4,074,247.88 | 9.54 |
 | Oil & Gas Services | 2 | 3 | $4,791,574.76 | $4,053,787.54 | 9.34 |
-| Healthcare Staffing | 2 | 3 | $3,644,109.82 | $3,644,109.82 | 7.11 |
+| Healthcare Staffing | 2 | 3 | $3,644,109.82 | $3,644,109.82 | 7.10 |
 | Seafood Processing | 1 | 1 | $3,021,553.55 | $3,021,553.55 | 5.89 |
 | NOT IN CRM | 2 | 2 | $2,869,108.14 | $2,869,108.14 | 5.59 |
 | Staffing Services | 2 | 2 | $2,824,526.73 | $363,812.74 | 5.51 |
 | Furniture Manufacturing | 1 | 1 | $2,590,915.69 | $0.00 | 5.05 |
 | Agriculture | 1 | 1 | $2,359,895.00 | $0.00 | 4.60 |
-| Construction | 2 | 3 | $2,284,730.31 | $2,012,844.55 | 4.46 |
+| Construction | 2 | 3 | $2,284,730.31 | $2,012,844.55 | 4.45 |
 | Import/Export | 1 | 1 | $1,795,141.83 | $0.00 | 3.50 |
 | Metals & Mining Services | 1 | 1 | $1,648,721.04 | $1,648,721.04 | 3.21 |
 | Apparel & Textiles | 2 | 2 | $1,152,272.36 | $1,152,272.36 | 2.25 |
@@ -205,11 +307,13 @@ have hidden all of it. The `~NULL~` sentinel never reaches output.
 
 `pt4/05-verify.sql` guards the expressions the four scripts repeat. All five checks pass:
 
-1. Exposure by industry reconciles to the headline total at 40 facilities and $51,282,728.71
+1. Exposure by industry reconciles to the headline total at 40 facilities and $51,307,728.71
 2. No facility reaches output unlabelled; the open portfolio is bounded by the portfolio
 3. All five orphan transactions sit on the guard row and none touches a real facility; and the generated month grid totals $5,126,379.30, equal to the ungridded 2025 sum. 
 
-It also lists remittances outside the 2025 window, which is where `API-636654e4` shows up, the row `POST /remittances` wrote during the Part 6 walkthrough.
+It also lists the remittances its 2025 filter excludes. On a fresh build that list holds no
+`API-` rows; one appears there after the Part 6 walkthrough below posts a remittance dated
+outside 2025.
 
 ### Known limitation
 
@@ -234,11 +338,22 @@ uv run uvicorn app.main:app --app-dir pt6 --port 8000
 ```
 
 Swagger UI at http://127.0.0.1:8000/docs. `--app-dir` keeps the repo from having to be an
-installable package. Tests, which never write to Snowflake, are `uv run pytest pt6/test_api.py`.
+installable package. `pt6/00-api-views.sql` also runs as part of `00_run_all.sh`, so after a
+full rebuild only the last line is needed.
+
+Leave `--reload` off: each reload re-opens the Snowflake connection, which on an MFA account
+means another push. `pt6/.env` must point at the same account the rebuild targeted, or the API
+will read a database the rebuild did not build. A startup crash naming missing environment
+variables is `db.py` working as designed.
+
+Tests are `uv run pytest pt6/test_api.py -v`: ten cases, all read-only, all against live
+Snowflake with no mocks. They cover filtering, pagination, the 404 borrower, the status-bucket
+reconciliation, and every error path on `POST /remittances` except the success case, which is
+excluded deliberately because it moves a real balance.
 
 ### How it connects
 
-Everything comes from the environment — there is no account, user or secret anywhere in the
+Everything comes from the environment. There is no account, user or secret anywhere in the
 source, and the service never learns which account it is pointed at:
 
 | Variable | Notes |
@@ -263,10 +378,57 @@ instead of once per project: the `IS_CURRENT_IND` filter on both SCD2 dimensions
 of the `NULL FACILITY` / `NULL ORGANIZATION` guard rows, and nulling the `~NULL~` sentinel so a
 client never receives it as a string. `V_API_LOAN` left-joins the borrower rather than
 inner-joining, so a facility could never vanish from `GET /loans` by pointing at a guard row.
+The script self-checks on creation: `v_api_loan` 40 of 40 facilities with 40 mapped to a
+borrower, `v_api_borrower` 33 of 33.
 
 Because Part 2 resolves borrower identity upstream, `DIM_FACILITY.ORGANIZATION_SK` is a real
 foreign key and the join here is plain. All 40 current facilities reach a borrower, including
 `KINGSFORD RECEIVABLES` and `DUNMORE FUNDING LLC`, which Affinity has no record of.
+
+### Exercising it
+
+Five commands covering the graded behaviours. The service emits compact JSON, so the `grep`
+patterns carry no space after the colon.
+
+| Command | Expected |
+|---|---|
+| `curl -s "localhost:8000/loans?status=ACTIVE" \| grep -o '"total":[0-9]*'` | `"total":26`; `WATCH-LIST`, `CLOSED`, `PAID-OFF` give 6, 4, 3, and `?status=active` matches `ACTIVE` |
+| `curl -s "localhost:8000/loans?fund=cardinal%20lender%20finance%20fund%20i" \| grep -o '"total":[0-9]*'` | `"total":26`: a fund with no facilities is `200` with `"total":0`, not a `404` |
+| `curl -s "localhost:8000/loans?limit=5&offset=5" \| python3 -m json.tool \| head` | `"total":40` with five items, FV-1006 through FV-1010; `limit=201` is a `422`, the bound being 1 to 200 |
+| `curl -s -w ' HTTP=%{http_code}\n' localhost:8000/borrowers/AFF-9999/loans` | `404`, `BORROWER_NOT_FOUND`. `AFF-2029` exists with no facilities and is a `200` with `"loans":[]` |
+| `curl -s -X POST localhost:8000/remittances -H 'Content-Type: application/json' -d '{"facility_id":"FV-1001","amount":-1,"transaction_date":"2026-01-01"}'` | `400`, `AMOUNT_NOT_POSITIVE`. A non-numeric `amount` is `422`, and an unknown `facility_id` is `404` |
+
+`GET /portfolio/summary` returns `total_outstanding` 51307728.71, `loan_count` 40,
+`facilities_missing_balance` 0, and a `loans_by_status` array whose counts sum to 40 and whose
+`outstanding` values sum to the total, including a bucket with `"status": null` holding FV-1004.
+`top_borrowers` matches the Part 4 table, headed by COPPER ELM at $4,053,787.54, with
+`share_of_total` expressed as a fraction.
+
+### `POST /remittances` end to end
+
+The one path that crosses API → `RAW` → stream → task → `MARTS`, and the one the test suite
+leaves alone. Capture the balance first:
+
+```bash
+uv run snow sql -q "select facility_id, net_funds_employed from callahan_db.marts.dim_facility
+                    where facility_id = 'FV-1001' and is_current_ind"
+
+curl -s -X POST localhost:8000/remittances -H 'Content-Type: application/json' \
+  -d '{"facility_id":"FV-1001","amount":25000.00,"transaction_date":"2026-08-09","share_class":"Class A"}'
+```
+
+The response is `201` with `"status": "accepted"` and a `transaction_id` like `API-xxxxxxxx`.
+After about 45 seconds, each hop should hold that id:
+
+| Hop | Expected |
+|---|---|
+| `RAW.TENOR_TRANSACTIONS_EXPORT` | one row, `transaction_date` written as `09-Aug-26` |
+| `MARTS.FACT_TRANSACTION` | one row, date parsed to `2026-08-09`, amount 25000, `known_facility_ind` true |
+| `STAGING.AUDIT_TRANSACTION` | count unchanged: a clean row must not be audited |
+| `DIM_FACILITY.NET_FUNDS_EMPLOYED` on FV-1001 | exactly 25,000.00 lower, and `/portfolio/summary` follows |
+
+If the API's number lags the warehouse's, the task has not fired yet. Nothing needs restarting.
+The `DD-MON-YY` value in RAW is the point of the check; see the first known limitation below.
 
 ### Design decisions
 
@@ -286,7 +448,7 @@ with no facilities returns `200` with an empty array; only an unknown id is a `4
 This is a read-mostly reporting API and numbers are simpler to consume.
 
 **Schema violations are `422`, business-rule violations are `400`.** `amount` deliberately
-carries no Pydantic `gt=0` constraint — that would return `422` where the brief asks for `400`,
+carries no Pydantic `gt=0` constraint: that would return `422` where the brief asks for `400`,
 so the rule is enforced in the handler. Every failure, including FastAPI's own validation
 errors and unmatched routes, comes back in one envelope:
 
@@ -307,7 +469,14 @@ inserts into `RAW.TENOR_TRANSACTIONS_EXPORT`, which the staging layer parses wit
 `parse_fail_ind` and is quarantined, so the endpoint would return `201` for a remittance that
 never arrives. The API formats the date on the way in, which couples it to a CSV export's
 conventions in both directions. The durable fix is widening the staging parser to accept ISO
-too — a REST producer should not have to imitate a file format.
+too. A REST producer should not have to imitate a file format.
+
+**FV-1004 is unreachable through `?status=`.** Part 2 nulls that facility's status where its two
+source copies disagree, and `LoanStatus` has no member for null, so the four filterable values
+cover 39 of the 40 facilities and `?status=UNKNOWN` is a `422`. The facility is not hidden: it
+appears in an unfiltered `GET /loans` and in `/portfolio/summary` as a `null` bucket of one, the
+same row Part 4 renders as `UNKNOWN` through a `coalesce`. The fix is an explicit enum member
+mapping to `status is null`.
 
 **One Snowflake connection, opened at startup.** The assessment account permits password plus
 Duo MFA only, with no key pair. Connecting per request would fire a Duo push on every HTTP call,
