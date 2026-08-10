@@ -1,12 +1,14 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
+use warehouse callahan_wh;
 
 /*
 Outstanding exposure by industry.
 
-Industry is an Affinity attribute; balances come from Factorview and Tenor. The two systems
-share no key, only a name, so the join strategy is the whole question. This first query is
-the naive version -- match on the raw name -- and measures what it loses.
+To get exposure (from Tenor) by Industry (from Affinity), we must join the Factorview, Tenor,
+and Affinity Dataets. The systems share no built-in key, so we must devise a join strategy. 
+
+That strategy cannot use the client_name from Factorview directly, as shown below:
 */
 with factorview as (
 select distinct facility_id
@@ -28,14 +30,12 @@ left join affinity a
 
 
 /*
-The real join. Part 2 normalizes both sides to the same match key and hashes it into
-ORGANIZATION_SK, which makes the foreign key total, so exposure by industry is a plain
-left join off the facility. Left, not inner, so no facility can drop out on a miss.
+Instead, we normalize these names into a robustly-joinable "Match Key", that then gets 
+hashed to generate ORGANIZATION_SK, which is used for all analytic joins, .
 
-Unmapped borrowers get labelled rather than pooled, because the two cases need different
-follow-up: 'Not in CRM' is a borrower Affinity has no record of and someone has to create
-one; 'Industry not set' is a CRM record whose industry field is blank and someone has to
-fill it in. The '~NULL~' sentinel never reaches output.
+Unmapped borrowers are mapped in two ways: 'NOT IN CRM' is a borrower Affinity has no record of and someone has to create
+one; 'INDUSTRY NOT SET' is a CRM record whose industry field is blank and someone has to
+fill it in.
 */
 with labelled as (
 select f.facility_id
@@ -44,8 +44,8 @@ select f.facility_id
       ,o.organization_sk
       ,case
          when o.organization_sk is null       then 'Unmapped borrower'
-         when o.source_system = 'FACTORVIEW'  then 'Not in CRM'
-         when nvl(o.industry, '~NULL~') = '~NULL~' then 'Industry not set'
+         when o.source_system = 'FACTORVIEW'  then 'NOT IN CRM'
+         when nvl(o.industry, '~NULL~') = '~NULL~' then 'INDUSTRY NOT SET'
          else o.industry
        end as industry
 from dim_facility f
@@ -68,7 +68,7 @@ group by 1
 order by exposure desc;
 
 
--- The borrowers behind the two unmapped labels, named so the gap is a work list.
+-- The borrowers behind the two unmapped labels
 select o.organization_name
       ,o.source_system
       ,count(f.facility_id) as facilities
