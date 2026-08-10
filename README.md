@@ -462,6 +462,8 @@ For writing, I generally do my own research on the task at hand (do my own analy
 bullet-point notes of what I found, and refine my investigation using Claude. Once I have all 
 the required questions answered, I work with Claude to refine my bullet-point notes into a longer document
 
+For diagramming, I used the built-in `/artifact-diagramming` Claude skill.
+
 #### Claude Pushbacks
 
 Places where an AI suggestion was rejected or materially changed:
