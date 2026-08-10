@@ -20,7 +20,9 @@ select null, '21-Feb-26', 'Fund I', 'Class A', 'FV-1001',
 
 select system$stream_has_data('callahan_db.raw.stm_tenor_transactions') as stream_has_data;
 
--- ** Allow about 60 seconds to pass for these records to be routed to the audit layer** 
+select $$ ** Allow about 60 seconds to pass for these records to be routed to the audit layer** .
+Once ready, run `uv run snow sql -q "select count(*) from callahan_db.staging.audit_transaction;"`
+in your terminal
+$$ as message
 
 -- Confirm that this number is larger than the one initiall y shown from the query on line 7.
-select count(*) from callahan_db.staging.audit_transaction;
