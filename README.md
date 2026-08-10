@@ -245,7 +245,7 @@ source, and the service never learns which account it is pointed at:
 |---|---|
 | `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER` | |
 | `SNOWFLAKE_ROLE` | `CANDIDATE_CALLAHAN` |
-| `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE` | `CALLAHAN_WH`, `CALLAHAN_DB` |
+| `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE` | `WH_CALLAHAN`, `CALLAHAN_DB` |
 | `SNOWFLAKE_AUTHENTICATOR` | `snowflake_jwt` or `username_password_mfa` |
 | `SNOWFLAKE_PRIVATE_KEY_FILE`, `SNOWFLAKE_PRIVATE_KEY_FILE_PWD` | key pair only |
 | `SNOWFLAKE_PASSWORD` | password + MFA only |

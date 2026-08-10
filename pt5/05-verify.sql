@@ -1,7 +1,7 @@
 -- Proves each role reaches what it should. Requires USE SECONDARY ROLES NONE.
 
 use secondary roles none;
-use warehouse callahan_wh;
+use warehouse wh_callahan;
 
 -- Analyst: MARTS reachable.
 use role callahan_analyst_ro;

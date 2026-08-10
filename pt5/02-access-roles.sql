@@ -118,9 +118,9 @@ grant select on view callahan_db.marts.v_lp_portfolio_summary
 
 
 -- -----------------------------------------------------------------------------
--- CALLAHAN_WH_U_AR: Usage on CALLAHAN_WH
+-- WH_CALLAHAN_U_AR: Usage on WH_CALLAHAN
 -- -----------------------------------------------------------------------------
 -- Usage without operate. The warehouse auto-resumes, so a reader never needs to
 -- start or resize it.
-create role if not exists callahan_wh_u_ar;
-grant usage on warehouse callahan_wh to role callahan_wh_u_ar;
+create role if not exists wh_callahan_u_ar;
+grant usage on warehouse wh_callahan to role wh_callahan_u_ar;

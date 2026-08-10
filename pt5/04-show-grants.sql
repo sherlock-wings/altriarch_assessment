@@ -12,7 +12,7 @@ show grants to role callahan_db_marts_r_ar;
 show grants to role callahan_db_staging_r_ar;
 show grants to role callahan_db_raw_r_ar;
 show grants to role callahan_db_marts_lp_summary_r_ar;
-show grants to role callahan_wh_u_ar;
+show grants to role wh_callahan_u_ar;
 
 show future grants in schema callahan_db.raw;
 show future grants in schema callahan_db.staging;

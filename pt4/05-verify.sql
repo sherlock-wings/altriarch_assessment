@@ -1,6 +1,6 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
-use warehouse callahan_wh;
+use warehouse wh_callahan;
 
 /*
 Guards on the expressions scripts 01-04 repeat. Every check reports PASS or FAIL in its

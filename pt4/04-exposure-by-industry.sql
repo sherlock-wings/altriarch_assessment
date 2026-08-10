@@ -1,6 +1,6 @@
 use role candidate_callahan;
 use schema callahan_db.marts;
-use warehouse callahan_wh;
+use warehouse wh_callahan;
 
 /*
 Outstanding exposure by industry.

@@ -8,7 +8,7 @@
 --   CALLAHAN_FINANCE     -> read-only, RAW + STAGING + MARTS
 --   CALLAHAN_LP_READONLY -> MARTS.V_LP_PORTFOLIO_SUMMARY and nothing else
 --
--- Every one of them gets CALLAHAN_WH_U_AR
+-- Every one of them gets WH_CALLAHAN_U_AR
 -- =============================================================================
 
 -- use role securityadmin;  -- Note: Cannot run on Assessment Account
@@ -20,17 +20,17 @@ create role if not exists callahan_lp_readonly;
 
 -- Analyst — business-ready layer only
 grant role callahan_db_marts_r_ar to role callahan_analyst_ro;
-grant role callahan_wh_u_ar to role callahan_analyst_ro;
+grant role wh_callahan_u_ar to role callahan_analyst_ro;
 
 -- Finance — all three layers
 grant role callahan_db_raw_r_ar to role callahan_finance;
 grant role callahan_db_staging_r_ar to role callahan_finance;
 grant role callahan_db_marts_r_ar to role callahan_finance;
-grant role callahan_wh_u_ar to role callahan_finance;
+grant role wh_callahan_u_ar to role callahan_finance;
 
 -- LP — one view
 grant role callahan_db_marts_lp_summary_r_ar to role callahan_lp_readonly;
-grant role callahan_wh_u_ar to role callahan_lp_readonly;
+grant role wh_callahan_u_ar to role callahan_lp_readonly;
 
 -- User provisioning. In the reference project this lives in a separate script; here
 -- the assessment account has one human, and the roles have to be assumable to be
