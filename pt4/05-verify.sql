@@ -137,9 +137,8 @@ from gridded g
 cross join ungridded u;
 
 
--- Context for question 3: lists the remittances its 2025 filter
--- excludes, showing the rows left out of that answer. The
--- API-prefixed 2026 row is one POST /remittances wrote during the Part 6 walkthrough.
+-- Context for question 3: lists the remittances the 2025 filter excludes, so the rows
+-- left out of that answer shown here
 select transaction_id
       ,transaction_date
       ,facility_id
