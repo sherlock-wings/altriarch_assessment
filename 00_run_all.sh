@@ -73,6 +73,8 @@ run_sql pt3/04-load-delta.sql
 wait_for_stream
 run_sql pt3/05-verify.sql
 
+run_sql pt6/00-api-views.sql
+
 cat <<'EOF'
 
 ================================================================================
