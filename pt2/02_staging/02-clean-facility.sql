@@ -4,7 +4,7 @@ use schema callahan_db.staging;
 create transient table if not exists int_facility (
 facility_sk varchar,
 facility_id varchar,
-client_name varchar,
+organization_sk varchar,
 fund_description varchar,
 product_type varchar,
 discount_rate number(5,4),
@@ -31,7 +31,9 @@ with simple_dedup as (
 select distinct 
        md5(nvl(facility_id::varchar,'~NULL~')) as facility_sk
       ,facility_id
-      ,trim(upper(client_name), ' ') as client_name
+      ,md5(trim(regexp_replace(
+            regexp_replace(upper(nvl(client_name, '~NULL~')), '[^A-Z0-9 ]', ''),
+            ' (LLC|INC|CO|LP|LTD|CORP|COMPANY)$', ''))) as organization_sk
       ,fund as fund_description
       ,product_type
       ,case 
@@ -148,7 +150,7 @@ select * from agged where max_rownum = 2
 ,stack as (
 select a.FACILITY_SK
       ,a.FACILITY_ID
-      ,a.CLIENT_NAME
+      ,a.ORGANIZATION_SK
       ,a.FUND_DESCRIPTION
       ,a.PRODUCT_TYPE
       ,a.DISCOUNT_RATE
@@ -165,7 +167,7 @@ union all
 
 select FACILITY_SK
       ,FACILITY_ID
-      ,CLIENT_NAME
+      ,ORGANIZATION_SK
       ,FUND_DESCRIPTION
       ,PRODUCT_TYPE
       ,DISCOUNT_RATE
@@ -183,7 +185,7 @@ select *
        || '||' ||
        nvl(FACILITY_ID::varchar, '~NULL~')
        || '||' ||
-       nvl(CLIENT_NAME::varchar, '~NULL~')
+       nvl(ORGANIZATION_SK::varchar, '~NULL~')
        || '||' ||
        nvl(FUND_DESCRIPTION::varchar, '~NULL~')
        || '||' ||
@@ -193,7 +195,7 @@ select *
        || '||' ||
        nvl(NET_FUNDS_EMPLOYED::varchar, '~NULL~')
        || '||' ||
-       nvl(try_cast(null as number(35,3))::varchar, '~NULL~') 
+       nvl(FACILITY_FUNDING_LIMIT::varchar, '~NULL~')
        || '||' ||
        nvl(FUNDING_DATE::varchar, '~NULL~')
        || '||' ||

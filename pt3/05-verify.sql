@@ -58,3 +58,73 @@ select transaction_id
       ,batch_ts
 from callahan_db.staging.audit_transaction
 order by batch_ts, transaction_id, record_number;
+
+
+-- every facility resolves to an organization, in the marts and in staging. Both must be 0.
+select (
+  select count(*)
+  from callahan_db.marts.dim_facility f
+  where f.is_current_ind
+    and not exists (select 1 from callahan_db.marts.dim_organization o
+                    where o.is_current_ind and o.organization_sk = f.organization_sk)
+) as orphan_facilities_marts
+,(
+  select count(*)
+  from callahan_db.staging.int_facility f
+  where not exists (select 1 from callahan_db.staging.int_organization o
+                    where o.organization_sk = f.organization_sk)
+) as orphan_facilities_staging;
+
+-- no fan-out: one row per surrogate key in both layers. Both must be 0.
+select (
+  select count(*) from (
+    select organization_sk from callahan_db.marts.dim_organization
+    where is_current_ind group by 1 having count(*) > 1)
+) as duplicate_org_sk_marts
+,(
+  select count(*) from (
+    select organization_sk from callahan_db.staging.int_organization
+    group by 1 having count(*) > 1)
+) as duplicate_org_sk_staging;
+
+-- the join does not multiply facilities. Must equal the DIM_FACILITY current row count, 41.
+select count(*) as joined_rows
+from callahan_db.marts.dim_facility f
+join callahan_db.marts.dim_organization o
+  on o.organization_sk = f.organization_sk and o.is_current_ind
+where f.is_current_ind;
+
+-- provenance. Expect 31 AFFINITY and 2 FACTORVIEW.
+select source_system, count(*) as n
+from callahan_db.staging.int_organization
+group by 1 order by 1;
+
+-- name groups the match key collapses. Expect 4, all legal-suffix variants of one borrower;
+-- a fifth means the heuristic reached a name it should not have and needs a human to look.
+with src as (
+select 'AFFINITY' as source_system
+      ,trim(upper(organization_name), ' ') as name
+from callahan_db.raw.affinity_organizations_export
+union
+select 'FACTORVIEW'
+      ,trim(upper(client_name), ' ')
+from callahan_db.raw.factorview_facilities_export
+)
+
+,keyed as (
+select source_system
+      ,name
+      ,trim(regexp_replace(
+            regexp_replace(upper(nvl(name, '~NULL~')), '[^A-Z0-9 ]', ''),
+            ' (LLC|INC|CO|LP|LTD|CORP|COMPANY)$', '')) as match_key
+from src
+)
+
+select match_key
+      ,count(distinct name) as distinct_source_names
+      ,listagg(distinct source_system || ': ' || name, ' | ')
+       within group (order by source_system || ': ' || name) as collapsed_names
+from keyed
+group by 1
+having count(distinct name) > 1
+order by 1;

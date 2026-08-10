@@ -66,9 +66,11 @@ This table has no surrogate key. Key formatting becomes non-standard if
 this table holds data from multiple sources in the future.
 $$ as issue_description,
 $$
-Impose key-standardization with MD5 hash on organization_name. Do not use
-affinity_org_id because a unique value there does not guarantee a unique
-customer.
+Impose key-standardization with an MD5 hash of the normalized borrower match
+key -- the organization name upper-cased, stripped of punctuation and of a
+trailing legal suffix. Do not use affinity_org_id because a unique value there
+does not guarantee a unique customer, and do not hash the raw name, because
+Factorview spells the same borrower differently.
 $$ as issue_resolution
 
 union all 
@@ -355,6 +357,51 @@ of truth for how much funding is actually deployed at current for each facility.
 the NFE values in DIM_FACILITY to reflect the latest known balance as calculated from 
 the Tenor data. See comments in pt2/03_marts/04-correct-nfe-dim-facility.sql for more 
 details on Reasoning.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_FACILITY' as object_name,
+'ORGANIZATION_SK' as field_name,
+'REFERENTIAL-INTEGRITY' as issue_type,
+$$
+Factorview client names do not match Affinity organization names. 8 of 40 facilities
+fail an exact-name join -- six differ only by punctuation and a trailing legal suffix
+(COBALT WORKING CAPITAL LLC vs COBALT WORKING CAPITAL, COPPER ELM FACTORING vs COPPER
+ELM FACTORING, INC.), and two name borrowers Affinity has no record of. There is no
+key between the two systems, only the name.
+$$ as issue_description,
+$$
+Normalize both sides the same way -- upper-case, strip punctuation, strip one trailing
+legal suffix -- and hash the result into ORGANIZATION_SK, which replaces CLIENT_NAME on
+the facility outright. Both cleansing scripts derive the key independently from their own
+source, so neither depends on the other having run; pt3/05-verify.sql asserts that every
+facility's key resolves to an organization, which is what catches the two copies drifting.
+Suffix stripping is a heuristic and could over-strip a borrower genuinely named "... CO";
+none in this data does, and the verify script surfaces every collapsed name group so a new
+one cannot land silently.
+$$ as issue_resolution
+
+union all
+
+select
+'TABLE' as object_type,
+'STAGING' as object_schema,
+'INT_ORGANIZATION' as object_name,
+null as field_name,
+'UNMATCHED-BORROWER' as issue_type,
+$$
+KINGSFORD RECEIVABLES (FV-1019) and DUNMORE FUNDING LLC (FV-1033) hold facilities in
+Factorview but have no Affinity record at all, so they have no CRM attributes to carry.
+$$ as issue_description,
+$$
+Give them their own organization rows tagged SOURCE_SYSTEM = 'FACTORVIEW' with null CRM
+attributes, rather than dropping the borrower or collapsing it into NULL ORGANIZATION.
+Collapsing would discard both names entirely once CLIENT_NAME is gone. This keeps the
+foreign key total and leaves the gap as a queryable list for follow-up with the CRM owners.
 $$ as issue_resolution
 
 union all

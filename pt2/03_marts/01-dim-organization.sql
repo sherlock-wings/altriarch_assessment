@@ -65,6 +65,7 @@ with incoming_src as (
           ,tgt.STATE
           ,tgt.RELATIONSHIP_OWNER
           ,tgt.DATE_ADDED
+          ,tgt.SOURCE_SYSTEM
           ,tgt.CHANGE_TRACKING_KEY
           ,tgt.RECORD_VERSION_NUMBER
           ,false as IS_CURRENT_IND
@@ -93,6 +94,7 @@ when not matched then insert (
   ,STATE
   ,RELATIONSHIP_OWNER
   ,DATE_ADDED
+  ,SOURCE_SYSTEM
   ,CHANGE_TRACKING_KEY
   ,RECORD_VERSION_NUMBER
   ,IS_CURRENT_IND
@@ -107,6 +109,7 @@ when not matched then insert (
   ,intr.STATE
   ,intr.RELATIONSHIP_OWNER
   ,intr.DATE_ADDED
+  ,intr.SOURCE_SYSTEM
   ,intr.CHANGE_TRACKING_KEY
   ,intr.RECORD_VERSION_NUMBER
   ,intr.IS_CURRENT_IND
@@ -129,6 +132,7 @@ select md5('NULL ORGANIZATION') as ORGANIZATION_SK
       ,'NULL ORGANIZATION' as STATE
       ,'NULL ORGANIZATION' as RELATIONSHIP_OWNER
       ,null as DATE_ADDED
+      ,'SYNTHETIC' as SOURCE_SYSTEM
       ,md5('NULL ORGANIZATION') as CHANGE_TRACKING_KEY
       ,1 as RECORD_VERSION_NUMBER
       ,true as IS_CURRENT_IND

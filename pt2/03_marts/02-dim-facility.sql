@@ -61,7 +61,7 @@ with incoming_src as (
 ,expire_existing_org_data as (
     select tgt.FACILITY_SK
           ,tgt.FACILITY_ID
-          ,tgt.CLIENT_NAME
+          ,tgt.ORGANIZATION_SK
           ,tgt.FUND_DESCRIPTION
           ,tgt.PRODUCT_TYPE
           ,tgt.DISCOUNT_RATE
@@ -93,7 +93,7 @@ on dim.scd_id = intr.scd_id
 when not matched then insert (
    FACILITY_SK
   ,FACILITY_ID
-  ,CLIENT_NAME
+  ,ORGANIZATION_SK
   ,FUND_DESCRIPTION
   ,PRODUCT_TYPE
   ,DISCOUNT_RATE
@@ -111,7 +111,7 @@ when not matched then insert (
 ) values (
    intr.FACILITY_SK
   ,intr.FACILITY_ID
-  ,intr.CLIENT_NAME
+  ,intr.ORGANIZATION_SK
   ,intr.FUND_DESCRIPTION
   ,intr.PRODUCT_TYPE
   ,intr.DISCOUNT_RATE
@@ -136,7 +136,9 @@ when matched then update set
 insert into dim_facility
 select md5('NULL FACILITY') as FACILITY_SK
       ,'NULL FACILITY' AS FACILITY_ID
-      ,'NULL FACILITY' AS CLIENT_NAME
+      -- even the guard facility resolves to a real organization, so the foreign key
+      -- has no exceptions anywhere in the table
+      ,md5('NULL ORGANIZATION') as ORGANIZATION_SK
       ,'NULL FACILITY' AS FUND_DESCRIPTION
       ,'NULL FACILITY' AS PRODUCT_TYPE
       ,null AS DISCOUNT_RATE

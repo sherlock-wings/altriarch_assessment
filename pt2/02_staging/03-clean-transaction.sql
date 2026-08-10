@@ -2,10 +2,9 @@ use role candidate_callahan;
 use schema callahan_db.staging;
 
 /*
-Sole input to the cleansing views below: the initial load fills it from the whole RAW
-table, the Part 3 task fills it from the stream. Scoping everything to a batch is what
-keeps the two dedup rules apart -- copies that disagree *within* a batch null the field
-they disagree on, while a later batch re-sending an id is a correction that overwrites.
+Data quality strategy treats each refresh as a batch -- copies that disagree *within* a 
+batch null the field they disagree on, while a later batch re-sending an id with new 
+attributes is a correction that overwrites.
 */
 create transient table if not exists transaction_batch
 like callahan_db.raw.tenor_transactions_export;
