@@ -4,6 +4,8 @@
 
 `RAW`, `STAGING` and `MARTS` are created in `pt1/01-schemas.sql`. The deployed MARTS DDL is in
 [`docs/marts-ddl.sql`](docs/marts-ddl.sql): two SCD2 dimensions, one fact table, and three views.
+[`docs/pipeline-dag.md`](docs/pipeline-dag.md) diagrams the end-to-end flow across all three
+schemas, the star schema, and every object the pipeline builds.
 The views are part of the design. 
   1. `V_FACT_TRANSACTION_SRC` resolves the facility key and prefers Factorview's fund description over 
       Tenor's where the two disagree
@@ -76,19 +78,105 @@ facts themselves stay correct because the merge is keyed on `TRANSACTION_ID`.
 
 ## Part 6: REST API
 
+A local FastAPI service in `pt6/`, talking to `CALLAHAN_DB` through the Snowflake Python
+connector. No BI tool, no wrapper.
+
+### Running it
+
+```bash
+cp pt6/.env.example pt6/.env      # then fill it in; pt6/.env is gitignored
+uv sync
+uv run snow sql -f pt6/00-api-views.sql
+uv run uvicorn app.main:app --app-dir pt6 --port 8000
+```
+
+Swagger UI at http://127.0.0.1:8000/docs. `--app-dir` keeps the repo from having to be an
+installable package. Tests, which never write to Snowflake, are `uv run pytest pt6/test_api.py`.
+
+### How it connects
+
+Everything comes from the environment — there is no account, user or secret anywhere in the
+source, and the service never learns which account it is pointed at:
+
+| Variable | Notes |
+|---|---|
+| `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER` | |
+| `SNOWFLAKE_ROLE` | `CANDIDATE_CALLAHAN` |
+| `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE` | `CALLAHAN_WH`, `CALLAHAN_DB` |
+| `SNOWFLAKE_AUTHENTICATOR` | `snowflake_jwt` or `username_password_mfa` |
+| `SNOWFLAKE_PRIVATE_KEY_FILE`, `SNOWFLAKE_PRIVATE_KEY_FILE_PWD` | key pair only |
+| `SNOWFLAKE_PASSWORD` | password + MFA only |
+
+`db.py` requires the five common variables plus whichever pair the chosen authenticator needs,
+and fails at startup naming any that are missing rather than erroring on the first request.
+`~/.snowflake/connections.toml` is deliberately not used: it is key-pair-only and machine-local,
+where env vars work the same way on either account.
+
+### The read surface
+
+`pt6/00-api-views.sql` creates `MARTS.V_API_LOAN` and `MARTS.V_API_BORROWER`, and every handler
+reads only those. The views own three things that are easy to get wrong once per endpoint
+instead of once per project: the `IS_CURRENT_IND` filter on both SCD2 dimensions, the exclusion
+of the `NULL FACILITY` / `NULL ORGANIZATION` guard rows, and nulling the `~NULL~` sentinel so a
+client never receives it as a string. `V_API_LOAN` left-joins the borrower rather than
+inner-joining, so a facility could never vanish from `GET /loans` by pointing at a guard row.
+
+Because Part 2 resolves borrower identity upstream, `DIM_FACILITY.ORGANIZATION_SK` is a real
+foreign key and the join here is plain. All 40 current facilities reach a borrower, including
+`KINGSFORD RECEIVABLES` and `DUNMORE FUNDING LLC`, which Affinity has no record of.
+
+### Design decisions
+
+**`POST /remittances` writes to `RAW`, and `201` means "accepted", not "recorded".** Writing
+straight to `MARTS.FACT_TRANSACTION` would make the response contract stronger, but it would
+bypass every parse, dedup and quarantine rule Parts 2 and 3 exist to enforce and open a second
+unvalidated path into the mart. Routing through RAW makes the API an ordinary producer into the
+existing stream and inherits that behaviour for free. The cost is an eventually-consistent
+response, which the `201` body states outright. Measured end to end, a posted remittance reached
+`FACT_TRANSACTION` and moved `DIM_FACILITY.NET_FUNDS_EMPLOYED` within about thirty seconds.
+
+**`{id}` in `/borrowers/{id}/loans` is an `ORGANIZATION_ID`.** Keying on a borrower name would
+give consumers no stable identifier and make the 404 case incoherent. A borrower that exists
+with no facilities returns `200` with an empty array; only an unknown id is a `404`.
+
+**Money serializes as JSON numbers.** String decimals would be more defensible for a ledger.
+This is a read-mostly reporting API and numbers are simpler to consume.
+
+**Schema violations are `422`, business-rule violations are `400`.** `amount` deliberately
+carries no Pydantic `gt=0` constraint — that would return `422` where the brief asks for `400`,
+so the rule is enforced in the handler. Every failure, including FastAPI's own validation
+errors and unmatched routes, comes back in one envelope:
+
+```json
+{ "error": { "code": "FACILITY_NOT_FOUND", "message": "No facility with id 'FV-9999'.",
+             "detail": null } }
+```
+
+**`share_class` is an enum, not free text.** Staging passes the column through unnormalized, so
+accepting `A` instead of `Class A` would put a third spelling into `FACT_TRANSACTION` on the
+first request.
+
 ### Known limitations
 
 **`POST /remittances` must write dates in `DD-MON-YY`.** The endpoint accepts an ISO date and
 inserts into `RAW.TENOR_TRANSACTIONS_EXPORT`, which the staging layer parses with
-`try_to_date(transaction_date, 'dd-mon-yy')`. Future work would allow the `POST /remittances`
-date format to be more flexible.
+`try_to_date(transaction_date, 'dd-mon-yy')`. An ISO date written there parses to null, trips
+`parse_fail_ind` and is quarantined, so the endpoint would return `201` for a remittance that
+never arrives. The API formats the date on the way in, which couples it to a CSV export's
+conventions in both directions. The durable fix is widening the staging parser to accept ISO
+too — a REST producer should not have to imitate a file format.
 
 **One Snowflake connection, opened at startup.** The assessment account permits password plus
 Duo MFA only, with no key pair. Connecting per request would fire a Duo push on every HTTP call,
 so the API opens a single connection in a FastAPI `lifespan` handler and reuses it, with
-`client_session_keep_alive=True`. One push, approved in the terminal running `uvicorn`.
-Setting `ALLOW_CLIENT_MFA_CACHING = TRUE` at the account level plus
+`client_session_keep_alive=True`. One push, approved in the terminal running `uvicorn`. Setting
+`ALLOW_CLIENT_MFA_CACHING = TRUE` at the account level plus
 `authenticator="username_password_mfa"` caches the MFA token so restarts within the caching
-window are silent. A single shared connection also means simultaneous requests queie within 
-a single Snowflake session. This is acceptable for a local single-user servic. In Production,
-this would become a connection pool.
+window are silent; `--reload` must stay off, since every code change would re-prompt. A single
+shared connection also means simultaneous requests queue within one Snowflake session. That is
+acceptable for a local single-user service; in production this becomes a connection pool.
+
+**One role for reads and writes.** The service connects as `CANDIDATE_CALLAHAN` because the
+Part 5 roles are read-only by design and none of them could serve `POST /remittances`. A
+production deployment would split the read endpoints onto a read-only role and leave only the
+insert path with write access.
