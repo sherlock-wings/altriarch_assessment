@@ -522,7 +522,7 @@ and the delta-file walkthrough are in [Part 3](#part-3-incremental-processing).
 ### AI usage disclosure
 
 AI (Claude, via Claude Code) was used throughout — schema and DDL design, the staging/marts SQL,
-the stream-and-task pipeline, the FastAPI service, and this README. Different tasks received different levels of AI attention, with data modeling and SQL Analytics requiring the least assistance, and things like shell scripting, API Construction, and debugging efforts requiring more AI attention. 
+the stream-and-task pipeline, the FastAPI service, and this README. Different tasks received different levels of AI attention, with data modeling and SQL Analytics requiring the least assistance, and things like shell scripting, API Construction, and systematic debugging using more AI-powered resources. 
 
 For examples of initial AI suggestions that were rejected in favor of something I thought would be better, see below:
 
@@ -540,9 +540,9 @@ For examples of initial AI suggestions that were rejected in favor of something 
    lives in `V_FACT_TRANSACTION`, computed fresh from whatever is currently in the fact table, so
    it cannot drift+.
 
-### What one more week would buy
+### What I would do if I had one more week
 
-Priority order would follow the known limitations already called out inline, roughly:
+Priority order would follow the known limitations already called out:
 
 - **Staging date parsing that accepts ISO input**, so `POST /remittances` (Part 6's first known
   limitation) can insert an ISO date instead of reformatting to `DD-MON-YY` to imitate a CSV
@@ -585,7 +585,7 @@ the same name with the same bytes.)
 
 **4. Serving Excel users, SQL analysts, and AI-assisted querying from one MARTS layer.** Assuming no better BI Tool is available, Excel
 power-users get there through Snowflake's native connector (or ODBC/JDBC) pointed at read-only
-views shaped like `V_LP_PORTFOLIO_SUMMARY`. 
+views shaped like `V_LP_PORTFOLIO_SUMMARY`. Typically this would be done with dedicated BI Tool such as PowerBI, Tableau, Sigma, etc.
 SQL analysts get direct role-based access to `MARTS` through roles like the ones Part 5 builds
 (`CALLAHAN_ANALYST_RO`, `CALLAHAN_FINANCE`), querying the dimensional model directly in Snowsight
 or their tool of choice. AI-assisted querying sits on top of the same layer rather than a
