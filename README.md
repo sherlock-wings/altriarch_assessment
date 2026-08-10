@@ -17,3 +17,10 @@ row from the initial export, so the MERGE matched it on `TRANSACTION_ID`, found 
 unchanged, and did nothing. `INV-70005`cites FV-9201, which does not exist in Factorview. So, 
 the row was kept, pointed at the `NULL FACILITY` surrogate key, marked `KNOWN_FACILITY_IND = false`,
 and excluded from the net-funds-employed refresh so it could not corrupt a real facility's balance.
+
+### Known limitation
+
+`SP_LOAD_TRANSACTIONS` inserts into `STAGING.AUDIT_TRANSACTION` without the `AUDIT_RECORD_SK`
+anti-join the initial-load path uses, so re-sending a file whose rows carry audit-worthy
+issues — as `pt3/07-quarantine-demo.sql` does — writes those audit rows a second time; the
+facts themselves stay correct because the merge is keyed on `TRANSACTION_ID`.
