@@ -24,3 +24,30 @@ and excluded from the net-funds-employed refresh so it could not corrupt a real 
 anti-join the initial-load path uses, so re-sending a file whose rows carry audit-worthy
 issues — as `pt3/07-quarantine-demo.sql` does — writes those audit rows a second time; the
 facts themselves stay correct because the merge is keyed on `TRANSACTION_ID`.
+
+## Part 6: REST API
+
+### Known limitations
+
+**`POST /remittances` must write dates in `DD-MON-YY`.** The endpoint accepts an ISO date and
+inserts into `RAW.TENOR_TRANSACTIONS_EXPORT`, which the staging layer parses with
+`try_to_date(transaction_date, 'dd-mon-yy')`. That parser recognizes one format, so the API
+reformats the date on the way in. Writing the ISO string straight through would parse to NULL,
+trip `PARSE_FAIL_IND`, and quarantine the row into `AUDIT_TRANSACTION` instead of loading it —
+the endpoint would return 201 and the remittance would never reach the marts. The coupling is
+real: the API has to know the staging date format, and a change to either side breaks the
+other silently. The durable fix is to widen the staging parser to accept ISO alongside
+`DD-MON-YY`, since a REST producer is a legitimate second source into that table and should
+not have to imitate a CSV export's formatting.
+
+**One Snowflake connection, opened at startup.** The assessment account permits password plus
+Duo MFA only — no key pair. Connecting per request would fire a Duo push on every HTTP call,
+so the API opens a single connection in a FastAPI `lifespan` handler and reuses it, with
+`client_session_keep_alive=True`. One push, approved in the terminal running `uvicorn`.
+Consequences: do not run with `--reload`, because every code change restarts the process and
+re-prompts; and if the connection drops mid-session, the next query reconnects and prompts
+again. Setting `ALLOW_CLIENT_MFA_CACHING = TRUE` at the account level plus
+`authenticator="username_password_mfa"` caches the MFA token so restarts within the caching
+window are silent. A single shared connection also means requests serialize on one Snowflake
+session; that is fine for a local single-user service and would become a connection pool in
+production.
