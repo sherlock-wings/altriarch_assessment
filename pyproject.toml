@@ -5,5 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.141.1",
+    "python-dotenv>=1.2.2",
     "snowflake-cli>=3.24.1",
+    "snowflake-connector-python[secure-local-storage]>=4.7.1",
+    "uvicorn>=0.52.1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.10.0",
+    "pytest>=9.1.1",
 ]
