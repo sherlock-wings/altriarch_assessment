@@ -73,6 +73,13 @@ run_sql pt3/04-load-delta.sql
 wait_for_stream
 run_sql pt3/05-verify.sql
 
+# Read-only. Reproduces the Part 4 numbers quoted in the README.
+run_sql pt4/01-total-outstanding.sql
+run_sql pt4/02-top-borrowers.sql
+run_sql pt4/03-monthly-remittances.sql
+run_sql pt4/04-exposure-by-industry.sql
+run_sql pt4/05-verify.sql
+
 run_sql pt6/00-api-views.sql
 
 cat <<'EOF'
