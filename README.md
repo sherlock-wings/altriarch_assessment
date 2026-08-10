@@ -172,12 +172,12 @@ join rather than an inner one so a facility cannot drop out on a miss.
 | Industry | Borrowers | Facilities | Exposure | Open exposure | % of total portfolio |
 |---|---:|---:|---:|---:|---:|
 | Transportation & Logistics | 3 | 6 | $8,224,765.77 | $7,612,716.28 | 16.04 |
-| Industry not set | 4 | 5 | $7,487,920.86 | $7,487,920.86 | 14.60 |
+| INDUSTRY NOT SET | 4 | 5 | $7,487,920.86 | $7,487,920.86 | 14.60 |
 | Manufacturing | 3 | 5 | $4,893,977.52 | $4,074,247.88 | 9.54 |
 | Oil & Gas Services | 2 | 3 | $4,791,574.76 | $4,053,787.54 | 9.34 |
 | Healthcare Staffing | 2 | 3 | $3,644,109.82 | $3,644,109.82 | 7.11 |
 | Seafood Processing | 1 | 1 | $3,021,553.55 | $3,021,553.55 | 5.89 |
-| Not in CRM | 2 | 2 | $2,869,108.14 | $2,869,108.14 | 5.59 |
+| NOT IN CRM | 2 | 2 | $2,869,108.14 | $2,869,108.14 | 5.59 |
 | Staffing Services | 2 | 2 | $2,824,526.73 | $363,812.74 | 5.51 |
 | Furniture Manufacturing | 1 | 1 | $2,590,915.69 | $0.00 | 5.05 |
 | Agriculture | 1 | 1 | $2,359,895.00 | $0.00 | 4.60 |
@@ -192,9 +192,9 @@ join rather than an inner one so a facility cannot drop out on a miss.
 Unmapped borrowers get two labels rather than one bucket, because the two cases need
 different follow-up:
 
-- **Not in CRM** ($2,869,108.14). KINGSFORD RECEIVABLES and DUNMORE FUNDING LLC hold
+- **NOT IN CRM** ($2,869,108.14). KINGSFORD RECEIVABLES and DUNMORE FUNDING LLC hold
   facilities in Factorview and have no Affinity record. Someone has to create one.
-- **Industry not set** ($7,487,920.86). LONGVIEW TRADE CREDIT, ELMGROVE CAPITAL PARTNERS LP,
+- **INDUSTRY NOT SET** ($7,487,920.86). LONGVIEW TRADE CREDIT, ELMGROVE CAPITAL PARTNERS LP,
   BROOKFIELD ASSET LENDING and BAYLINE COVE FINANCE have CRM records whose industry field is
   blank. Someone has to fill it in.
 
