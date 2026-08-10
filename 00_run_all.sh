@@ -82,6 +82,13 @@ run_sql pt4/05-verify.sql
 
 run_sql pt6/00-api-views.sql
 
+# pt5 runs last so its ALL-object grants cover the pt6 views too. Dropping a schema drops
+# its grants, so a rebuild has to replay these; the roles themselves survive.
+run_sql pt5/01-lp-summary-view.sql
+run_sql pt5/02-access-roles.sql
+run_sql pt5/03-functional-roles.sql
+run_sql pt5/05-verify.sql
+
 cat <<'EOF'
 
 ================================================================================
