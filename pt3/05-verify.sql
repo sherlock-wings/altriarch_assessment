@@ -38,7 +38,7 @@ order by f.transaction_id;
 
 -- show NFE movement against the pre-delta snapshot
 select p.facility_id
-      ,d.statuses
+      ,d.status
       ,p.net_funds_employed as nfe_before
       ,d.net_funds_employed as nfe_after
       ,d.net_funds_employed - p.net_funds_employed as nfe_change

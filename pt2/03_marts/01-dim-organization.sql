@@ -11,54 +11,49 @@ select o.*
 from callahan_db.staging.int_organization o
 where false;
 
-merge into dim_organization dim 
+merge into dim_organization dim
 using (
-with max_record_version_number as (
-    select nvl(max(record_version_number), 0) as maxnum
-    from dim_organization
-)
-
-,incoming_src as (
+with incoming_src as (
     select * from callahan_db.staging.int_organization
 )
 
 ,existing_tgt as (
+    -- current versions only; history rows would fan out every join below
     select * from dim_organization
+    where is_current_ind
 )
 
 ,insert_new_org_data as (
     select src.*
-          ,m.maxnum + 1 as record_version_number
+          ,nvl(tgt.record_version_number, 0) + 1 as record_version_number
           ,true as is_current_ind
           ,current_timestamp()::timestamp_ntz(9)  as record_valid_from_ts
           ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.organization_sk::varchar
             || '||' ||
-            current_timestamp()::varchar
+            (nvl(tgt.record_version_number, 0) + 1)::varchar
           ) as scd_id
     from incoming_src src
     left join existing_tgt tgt
            on src.organization_sk = tgt.organization_sk
-    cross join max_record_version_number m
     where tgt.organization_sk is null
 )
 
 ,insert_updated_org_data as (
     select src.*
-          ,m.maxnum + 1 as record_version_number
+          ,nvl(tgt.record_version_number, 0) + 1 as record_version_number
           ,true as is_current_ind
           ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
           ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.organization_sk::varchar
             || '||' ||
-            current_timestamp()::timestamp_ntz(9)::varchar
+            (nvl(tgt.record_version_number, 0) + 1)::varchar
           ) as scd_id
     from incoming_src src
     join existing_tgt tgt
       on tgt.organization_sk = src.organization_sk
-    cross join max_record_version_number m
     where tgt.change_tracking_key <> src.change_tracking_key
 )
 
@@ -77,10 +72,10 @@ with max_record_version_number as (
           ,dateadd(millisecond, -1, current_timestamp()::timestamp_ntz(9)) as RECORD_VALID_TO_TS
           ,tgt.SCD_ID
     from existing_tgt tgt
-    left join incoming_src src 
-           on tgt.organization_sk = src.organization_sk
-    where tgt.organization_sk is not null
-      and tgt.change_tracking_key <> src.change_tracking_key
+    -- absence from the export is not a deletion; only changed organizations expire
+    join incoming_src src
+      on tgt.organization_sk = src.organization_sk
+    where tgt.change_tracking_key <> src.change_tracking_key
 )
 
 select * from insert_new_org_data
@@ -88,8 +83,8 @@ union all
 select * from insert_updated_org_data
 union all 
 select * from expire_existing_org_data
-) intr 
-on dim.organization_sk = intr.organization_sk
+) intr
+on dim.scd_id = intr.scd_id
 when not matched then insert (
    ORGANIZATION_SK
   ,ORGANIZATION_ID
@@ -119,20 +114,10 @@ when not matched then insert (
   ,intr.RECORD_VALID_TO_TS
   ,intr.SCD_ID
 )
-when matched 
- and dim.change_tracking_key <> intr.change_tracking_key
-then update set  
-   dim.ORGANIZATION_NAME = intr.ORGANIZATION_NAME
-  ,dim.INDUSTRY = intr.INDUSTRY
-  ,dim.STATE = intr.STATE
-  ,dim.RELATIONSHIP_OWNER = intr.RELATIONSHIP_OWNER
-  ,dim.DATE_ADDED = intr.DATE_ADDED
-  ,dim.CHANGE_TRACKING_KEY = intr.CHANGE_TRACKING_KEY
-  ,dim.RECORD_VERSION_NUMBER = intr.RECORD_VERSION_NUMBER
-  ,dim.IS_CURRENT_IND = intr.IS_CURRENT_IND
-  ,dim.RECORD_VALID_FROM_TS = intr.RECORD_VALID_FROM_TS
+-- only expire_existing_org_data rows can match, and they close the version they came from
+when matched then update set
+   dim.IS_CURRENT_IND = intr.IS_CURRENT_IND
   ,dim.RECORD_VALID_TO_TS = intr.RECORD_VALID_TO_TS
-  ,dim.SCD_ID = intr.SCD_ID
 ;
 
 

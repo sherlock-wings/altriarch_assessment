@@ -12,7 +12,7 @@ net_funds_employed number(35,3),
 FACILITY_FUNDING_LIMIT number(35,3),
 funding_date date,
 maturity_date date,
-statuses array,
+status varchar,
 change_tracking_key varchar
 );
 
@@ -93,16 +93,16 @@ So for both duplicate cases, we must either do option (2) or option (3)
 ------------------------------------------------------------------------------------------------
 ON STATUS
 ------------------------------------------------------------------------------------------------
-With the STATUS column, this is a category. It is not a true "fact" in that it is not numeric.
-For that reason, we can feasibly combine multiple differing statuses into an array object (option
-2).
+Option (3), the same treatment FACILITY_FUNDING_LIMIT gets below. With no timing metadata there
+is no basis for calling either status current, so neither can be trusted and the record keeps a
+single NULL. An array of both was considered and rejected: it never yields an authoritative
+status, and it leaves this one field resolved differently from every other discrepancy.
 
-This does not give the record a single "authoratative" status, but it does let the viewer know
-when multiple statuses are present, which helps give the record context. 
+The discrepant source rows are not lost -- they are quarantined in AUDIT_FACILITY.
 */
-,collapse_statuses as (
+,collapse_status as (
 select * exclude(status)
-      ,split(listagg(distinct status, ',') within group (order by status), ',') as statuses
+      ,iff(count(distinct status) = 1, max(status), null) as status
 from simple_dedup
 group by all
 )
@@ -113,7 +113,7 @@ select *
        partition by facility_id
        order     by facility_funding_limit
       ) as rownum
-from collapse_statuses
+from collapse_status
 )
 
 ,agged as (
@@ -156,9 +156,9 @@ select a.FACILITY_SK
       ,b.FACILITY_FUNDING_LIMIT
       ,a.FUNDING_DATE
       ,a.MATURITY_DATE
-      ,a.STATUSES
-from normal_records a 
-left join collapse_statuses b 
+      ,a.STATUS
+from normal_records a
+left join collapse_status b
        on a.facility_id = b.facility_id
 
 union all 
@@ -173,7 +173,7 @@ select FACILITY_SK
       ,try_cast(null as number(35,3)) as FACILITY_FUNDING_LIMIT
       ,FUNDING_DATE
       ,MATURITY_DATE
-      ,STATUSES
+      ,STATUS
 from weird_records
 )
 
@@ -199,7 +199,7 @@ select *
        || '||' ||
        nvl(MATURITY_DATE::varchar, '~NULL~')
        || '||' ||
-       nvl(STATUSES::varchar, '~NULL~')
+       nvl(STATUS::varchar, '~NULL~')
        ) as change_tracking_key
 from stack
 ;

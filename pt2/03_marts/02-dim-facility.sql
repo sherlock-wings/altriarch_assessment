@@ -12,69 +12,49 @@ from callahan_db.staging.int_facility f
 where false;
 
 
-merge into dim_facility dim 
+merge into dim_facility dim
 using (
-with max_record_version_number as (
-    select nvl(max(record_version_number), 0) as maxnum
-    from dim_facility
-)
-
-,incoming_src as (
+with incoming_src as (
     select * from callahan_db.staging.int_facility
 )
 
 ,existing_tgt as (
+    -- current versions only; history rows would fan out every join below
     select * from dim_facility
+    where is_current_ind
 )
 
 ,insert_new_org_data as (
     select src.*
-          ,m.maxnum + 1 as record_version_number
+          ,nvl(tgt.record_version_number, 0) + 1 as record_version_number
           ,true as is_current_ind
           ,current_timestamp()::timestamp_ntz(9)  as record_valid_from_ts
           ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.facility_sk::varchar
             || '||' ||
-            current_timestamp()::varchar
+            (nvl(tgt.record_version_number, 0) + 1)::varchar
           ) as scd_id
     from incoming_src src
     left join existing_tgt tgt
            on src.facility_sk = tgt.facility_sk
-    cross join max_record_version_number m
     where tgt.facility_sk is null
 )
 
 ,insert_updated_org_data as (
-    select src.facility_sk
-          ,src.facility_id
-          ,src.client_name
-          ,src.fund_description
-          ,src.product_type
-          ,src.discount_rate
-          ,src.net_funds_employed
-          ,src.facility_funding_limit
-          ,src.funding_date
-          ,src.maturity_date
-          -- statuses accumulate, so a facility keeps every status it has been seen with
-          ,array_sort(array_distinct(array_cat(
-             nvl(tgt.statuses, array_construct())
-            ,nvl(src.statuses, array_construct())
-           ))) as statuses
-          ,src.change_tracking_key
-          ,m.maxnum + 1 as record_version_number
+    select src.*
+          ,nvl(tgt.record_version_number, 0) + 1 as record_version_number
           ,true as is_current_ind
           ,current_timestamp()::timestamp_ntz(9) as record_valid_from_ts
           ,'9999-12-31 23:59:59'::timestamp_ntz(9) as record_valid_to_ts
           ,md5(
             src.facility_sk::varchar
             || '||' ||
-            current_timestamp()::timestamp_ntz(9)::varchar
+            (nvl(tgt.record_version_number, 0) + 1)::varchar
           ) as scd_id
     from incoming_src src
     join existing_tgt tgt
       on tgt.facility_sk = src.facility_sk
-    cross join max_record_version_number m
     where tgt.change_tracking_key <> src.change_tracking_key
 )
 
@@ -89,7 +69,7 @@ with max_record_version_number as (
           ,tgt.FACILITY_FUNDING_LIMIT
           ,tgt.FUNDING_DATE
           ,tgt.MATURITY_DATE
-          ,tgt.STATUSES
+          ,tgt.STATUS
           ,tgt.CHANGE_TRACKING_KEY
           ,tgt.RECORD_VERSION_NUMBER
           ,false as IS_CURRENT_IND
@@ -97,10 +77,10 @@ with max_record_version_number as (
           ,dateadd(millisecond, -1, current_timestamp()::timestamp_ntz(9)) as RECORD_VALID_TO_TS
           ,tgt.SCD_ID
     from existing_tgt tgt
-    left join incoming_src src 
-           on tgt.facility_sk = src.facility_sk
-    where tgt.facility_sk is not null
-      and tgt.change_tracking_key <> src.change_tracking_key
+    -- absence from the export is not a deletion; only changed facilities expire
+    join incoming_src src
+      on tgt.facility_sk = src.facility_sk
+    where tgt.change_tracking_key <> src.change_tracking_key
 )
 
 select * from insert_new_org_data
@@ -108,8 +88,8 @@ union all
 select * from insert_updated_org_data
 union all 
 select * from expire_existing_org_data
-) intr 
-on dim.facility_sk = intr.facility_sk
+) intr
+on dim.scd_id = intr.scd_id
 when not matched then insert (
    FACILITY_SK
   ,FACILITY_ID
@@ -121,7 +101,7 @@ when not matched then insert (
   ,FACILITY_FUNDING_LIMIT
   ,FUNDING_DATE
   ,MATURITY_DATE
-  ,STATUSES
+  ,STATUS
   ,CHANGE_TRACKING_KEY
   ,RECORD_VERSION_NUMBER
   ,IS_CURRENT_IND
@@ -139,7 +119,7 @@ when not matched then insert (
   ,intr.FACILITY_FUNDING_LIMIT
   ,intr.FUNDING_DATE
   ,intr.MATURITY_DATE
-  ,intr.STATUSES
+  ,intr.STATUS
   ,intr.CHANGE_TRACKING_KEY
   ,intr.RECORD_VERSION_NUMBER
   ,intr.IS_CURRENT_IND
@@ -147,24 +127,10 @@ when not matched then insert (
   ,intr.RECORD_VALID_TO_TS
   ,intr.SCD_ID
 )
-when matched 
- and dim.change_tracking_key <> intr.change_tracking_key
-then update set  
-   dim.CLIENT_NAME = intr.CLIENT_NAME
-  ,dim.FUND_DESCRIPTION = intr.FUND_DESCRIPTION
-  ,dim.PRODUCT_TYPE = intr.PRODUCT_TYPE
-  ,dim.DISCOUNT_RATE = intr.DISCOUNT_RATE
-  ,dim.NET_FUNDS_EMPLOYED = intr.NET_FUNDS_EMPLOYED
-  ,dim.FACILITY_FUNDING_LIMIT = intr.FACILITY_FUNDING_LIMIT
-  ,dim.FUNDING_DATE = intr.FUNDING_DATE
-  ,dim.MATURITY_DATE = intr.MATURITY_DATE
-  ,dim.STATUSES = intr.STATUSES
-  ,dim.CHANGE_TRACKING_KEY = intr.CHANGE_TRACKING_KEY
-  ,dim.RECORD_VERSION_NUMBER = intr.RECORD_VERSION_NUMBER
-  ,dim.IS_CURRENT_IND = intr.IS_CURRENT_IND
-  ,dim.RECORD_VALID_FROM_TS = intr.RECORD_VALID_FROM_TS
+-- only expire_existing_org_data rows can match, and they close the version they came from
+when matched then update set
+   dim.IS_CURRENT_IND = intr.IS_CURRENT_IND
   ,dim.RECORD_VALID_TO_TS = intr.RECORD_VALID_TO_TS
-  ,dim.SCD_ID = intr.SCD_ID
 ;
 
 insert into dim_facility
@@ -178,7 +144,7 @@ select md5('NULL FACILITY') as FACILITY_SK
       ,null AS FACILITY_FUNDING_LIMIT
       ,null AS FUNDING_DATE
       ,null AS MATURITY_DATE
-      ,null AS STATUSES
+      ,null AS STATUS
       ,md5('NULL FACILITY') as CHANGE_TRACKING_KEY
       ,1 as RECORD_VERSION_NUMBER
       ,true as IS_CURRENT_IND

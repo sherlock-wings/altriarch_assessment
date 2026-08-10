@@ -287,9 +287,11 @@ Facility ID 'FV-1004' has a pair of dupes where each has a different
 STATUS value. 
 $$ as issue_description,
 $$
-Convert status to a ARRAY column and collapse differing STATUS values 
-into a single list. See pt2/04-03-clean-transactions.sql for details on
-thought process.
+Consider both values for STATUS as invalid. Collapse this into a single
+record where STATUS is NULL, and quarantine the discrepant source rows
+in STAGING.AUDIT_FACILITY. This is the same treatment
+FACILITY_FUNDING_LIMIT gets below. See pt2/02_staging/02-clean-facility.sql
+for details on thought process.
 $$ as issue_resolution
 
 union all 
