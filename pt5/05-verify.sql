@@ -26,7 +26,7 @@ order by display_order, metric_label;
 
 -- Negative checks, run one at a time because each aborts the script. Errors below are the
 -- actual responses, captured 2026-08-10.
-
+/*
 use role callahan_lp_readonly;
 select count(*) from callahan_db.marts.dim_facility;
   -- 002003 (42S02): SQL compilation error:

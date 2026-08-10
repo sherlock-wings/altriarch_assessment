@@ -7,6 +7,10 @@
 --
 -- Each access role covers exactly one schema at one access level, or one warehouse.
 --
+-- Every FUTURE grant below is commented out: defining one requires the MANAGE GRANTS
+-- account privilege, which the assessment execution user (CANDIDATE_CALLAHAN) does not
+-- have. Schema ownership is not sufficient. Until then, re-run the GRANT ... ON ALL ...
+-- statements after new objects are created; they are idempotent.
 -- =============================================================================
 
 -- use role securityadmin;  -- Note: Cannot run on Assessment Account
@@ -20,27 +24,27 @@ grant usage on database callahan_db to role callahan_db_raw_r_ar;
 grant usage on schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant select on all tables in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant select on future tables in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant select on future tables in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant select on all views in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant select on future views in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant select on future views in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant usage on all sequences in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant usage on future sequences in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant usage on future sequences in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant usage on all stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
 grant read on all stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant usage on future stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant read on future stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant usage on future stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant read on future stages in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant usage on all file formats in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant usage on future file formats in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant usage on future file formats in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant select on all streams in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant select on future streams in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant select on future streams in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 grant usage on all functions in schema callahan_db.raw to role callahan_db_raw_r_ar;
-grant usage on future functions in schema callahan_db.raw to role callahan_db_raw_r_ar;
+-- grant usage on future functions in schema callahan_db.raw to role callahan_db_raw_r_ar;
 
 
 -- -----------------------------------------------------------------------------
@@ -51,27 +55,27 @@ grant usage on database callahan_db to role callahan_db_staging_r_ar;
 grant usage on schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant select on all tables in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant select on future tables in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant select on future tables in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant select on all views in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant select on future views in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant select on future views in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant usage on all sequences in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant usage on future sequences in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant usage on future sequences in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant usage on all stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
 grant read on all stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant usage on future stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant read on future stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant usage on future stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant read on future stages in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant usage on all file formats in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant usage on future file formats in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant usage on future file formats in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant select on all streams in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant select on future streams in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant select on future streams in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 grant usage on all functions in schema callahan_db.staging to role callahan_db_staging_r_ar;
-grant usage on future functions in schema callahan_db.staging to role callahan_db_staging_r_ar;
+-- grant usage on future functions in schema callahan_db.staging to role callahan_db_staging_r_ar;
 
 
 -- -----------------------------------------------------------------------------
@@ -82,27 +86,27 @@ grant usage on database callahan_db to role callahan_db_marts_r_ar;
 grant usage on schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant select on all tables in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant select on future tables in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant select on future tables in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant select on all views in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant select on future views in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant select on future views in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant usage on all sequences in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant usage on future sequences in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant usage on future sequences in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant usage on all stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
 grant read on all stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant usage on future stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant read on future stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant usage on future stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant read on future stages in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant usage on all file formats in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant usage on future file formats in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant usage on future file formats in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant select on all streams in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant select on future streams in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant select on future streams in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 grant usage on all functions in schema callahan_db.marts to role callahan_db_marts_r_ar;
-grant usage on future functions in schema callahan_db.marts to role callahan_db_marts_r_ar;
+-- grant usage on future functions in schema callahan_db.marts to role callahan_db_marts_r_ar;
 
 
 -- -----------------------------------------------------------------------------
