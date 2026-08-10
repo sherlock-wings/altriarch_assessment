@@ -1,4 +1,4 @@
--- TODO: parts 5, 7
+-- TODO: part 7
 
 ## Part 1: Data model
 
