@@ -94,6 +94,21 @@ helps support this:
 - MARTS is source-agnostic
 This way, a new system adds a RAW table and a STAGING script and leaves the marts merge logic untouched. 
 
+### Diagram: 3 Layer Data-Flow
+
+![3 Layer Data-Flow](docs/img/01-layer-flow.png)
+
+## Part 2: see files at `pt2/`
+
+### Diagram: Kimball Star Schema
+
+![Kimball Star Schema](docs/img/02-star-schema.png)
+
+### Diagram: Pipeline DAG
+
+![Pipeline DAG](docs/img/03-object-dag.png)
+
+
 ## Part 3: Incremental processing
 
 `RAW.STM_TENOR_TRANSACTIONS` (append-only stream) feeds `TSK_LOAD_TRANSACTIONS`, a
@@ -323,6 +338,8 @@ which puts the mapping in two places. The durable fix is normalizing `FUND_DESCR
 `pt2/02_staging/03-clean-transaction.sql`, where it would apply to every row regardless of
 whether the facility resolves.
 
+## Part 5: see files in `pt5/`
+
 ## Part 6: REST API
 
 A local FastAPI service in `pt6/`, talking to `CALLAHAN_DB` through the Snowflake Python
@@ -438,7 +455,8 @@ bypass every parse, dedup and quarantine rule Parts 2 and 3 exist to enforce and
 unvalidated path into the mart. Routing through RAW makes the API an ordinary producer into the
 existing stream and inherits that behaviour for free. The cost is an eventually-consistent
 response, which the `201` body states outright. Measured end to end, a posted remittance reached
-`FACT_TRANSACTION` and moved `DIM_FACILITY.NET_FUNDS_EMPLOYED` within about thirty seconds.
+`FACT_TRANSACTION` and moved `DIM_FACILITY.NET_FUNDS_EMPLOYED` within about 45 seconds, matching
+the wait in the walkthrough below and the `TASK_SETTLE` constant `00_run_all.sh` polls on.
 
 **`{id}` in `/borrowers/{id}/loans` is an `ORGANIZATION_ID`.** Keying on a borrower name would
 give consumers no stable identifier and make the 404 case incoherent. A borrower that exists
@@ -492,3 +510,84 @@ acceptable for a local single-user service; in production this becomes a connect
 Part 5 roles are read-only by design and none of them could serve `POST /remittances`. A
 production deployment would split the read endpoints onto a read-only role and leave only the
 insert path with write access.
+
+## Part 7: README wrap-up and design questions
+
+### Architecture overview
+
+The layer rationale, keys, grain and
+borrower-identity design are in [Part 1](#part-1-data-model); the load → parse → merge mechanics
+and the delta-file walkthrough are in [Part 3](#part-3-incremental-processing). 
+
+### AI usage disclosure
+
+AI (Claude, via Claude Code) was used throughout — schema and DDL design, the staging/marts SQL,
+the stream-and-task pipeline, the FastAPI service, and this README. Different tasks received different levels of AI attention, with data modeling and SQL Analytics requiring the least assistance, and things like shell scripting, API Construction, and debugging efforts requiring more AI attention. 
+
+For examples of initial AI suggestions that were rejected in favor of something I thought would be better, see below:
+
+1. **A deployed UDF for borrower-name matching was rejected in favor of inline SQL.** An originally proposed
+   design called for a Snowflake UDF,
+   `FN_BORROWER_MATCH_KEY`, invoked from both cleansing scripts. It shipped instead as the same
+   three-line expression written inline at each of its three call sites. The function had no
+   remaining consumer once the Part 6 API view was simplified to a plain join on
+   `ORGANIZATION_SK`, so a deployed object would have existed for two call sites that can just
+   duplicate a short expression. 
+2. **Initial pipeline design would have accumulated data in the STAGING layer.** An early
+   version of `03-clean-transaction.sql` configured `int_transaction` as a forever-growing table. This object is meant to process incremental batches. The pipeline ought to grow at one or both ends, but never in the middle. A corrected version of the design implemented this object as a truncate-reload table
+3. **A running balance was first modeled as a stored column, then moved into a view.** The
+   initial design materialized `facility_balance` directly onto each `FACT_TRANSACTION`, which meant the values were correct basically once and go out of sync after loading the first delta. It was changed before Part 3 was built. The balance now
+   lives in `V_FACT_TRANSACTION`, computed fresh from whatever is currently in the fact table, so
+   it cannot drift+.
+
+### What one more week would buy
+
+Priority order would follow the known limitations already called out inline, roughly:
+
+- **Staging date parsing that accepts ISO input**, so `POST /remittances` (Part 6's first known
+  limitation) can insert an ISO date instead of reformatting to `DD-MON-YY` to imitate a CSV
+  export's convention.
+- **Fund-name normalization moved into staging** (Part 4's known limitation), so it applies to
+  every transaction rather than only the ones with known facilities
+- **The `AUDIT_TRANSACTION` anti-join guard** used by the initial load, applied inside
+  `SP_LOAD_TRANSACTIONS` too (Part 3's known limitation), so a re-sent file with audit-worthy rows
+  cannot double-write its audit trail.
+- **An explicit `UNKNOWN` status filter value** on `GET /loans` (Part 6's second known
+  limitation), so FV-1004 is reachable through `?status=` and not only through the unfiltered list.
+- **Split read/write roles for the API** (Part 6's design-decision section), so the service does
+  not run as `CANDIDATE_CALLAHAN` for every request.
+- **Implement pipeline as a [dbt project](https://www.getdbt.com/)**. This allows the pipeline to have features like self-documentation, data lineage, contracts, unit testing, and more.
+
+### Design questions
+
+**1. Production ingestion from a rate-limited REST API.** 
+- As I am new to API Engineering, I chose to defer this question.
+
+**2. Snowflake-native daily scheduling and failure monitoring.** Using Snowflake native features, you would just need to have a dedicated warehouse to run your tasks, which is triggered by an always-on stream and which runs a well-written stored procedure. Using streams, your pipeline is event-driven, so it defers to your upstream source system's ingestion schedule rather than having its own. Without a third party orchestator, you could monitor for failures in one of two ways: 
+
+1. Use [Snowflake Alerts](https://docs.snowflake.com/en/user-guide/alerts) to notify key personnel when there is a pipeline error or serious data issue so they can act on the problem
+
+2. Refactor the pipeline as a dbt project and host its executions via GitHub Actions jobs. 
+  - The dbt project's executions replace the automatiion the stored procedure currently givens
+  - This approach can still be made event driven; just have the task call a Python function that triggers the GitHub Actions job (which in turn triggers dbt) in response to `SYSTEM$STREAM_HAS_DATA()`
+
+**3. Idempotency on a re-sent file.** This is proven in the "Demonstrating
+idempotency" section above: the fact MERGE is keyed on `TRANSACTION_ID` with a
+`CHANGE_TRACKING_KEY` comparison, so a re-sent row that carries no new information matches and
+updates nothing. RAW still grows because it is append-only by design, but no balance moves and
+no duplicate reaches the mart. What is missing is a guarantee at the file level rather than the
+row level: a load ledger table keyed on file name and content checksum, consulted before `COPY
+INTO` runs, so a whole re-sent file is recognized and skipped before it reaches RAW at all,
+instead of relying on every one of its rows individually bouncing off the MERGE. (Snowflake's own
+load history already prevents literally the same staged file object from loading twice by
+default; the ledger would make that guarantee explicit and extend it to a file re-uploaded under
+the same name with the same bytes.)
+
+**4. Serving Excel users, SQL analysts, and AI-assisted querying from one MARTS layer.** Assuming no better BI Tool is available, Excel
+power-users get there through Snowflake's native connector (or ODBC/JDBC) pointed at read-only
+views shaped like `V_LP_PORTFOLIO_SUMMARY`. 
+SQL analysts get direct role-based access to `MARTS` through roles like the ones Part 5 builds
+(`CALLAHAN_ANALYST_RO`, `CALLAHAN_FINANCE`), querying the dimensional model directly in Snowsight
+or their tool of choice. AI-assisted querying sits on top of the same layer rather than a
+separate one: [a semantic view](https://docs.snowflake.com/en/user-guide/views-semantic/overview) defined over `MARTS` gives an LLM named metrics and dimensions instead of raw
+table access, and running it under one of the Part 5 roles helps keep its permissions scope to only its intended purpose
